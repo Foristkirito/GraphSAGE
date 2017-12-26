@@ -309,7 +309,8 @@ def train(train_data, test_data=None):
                     model.mrr, model.outputs1], feed_dict=feed_dict, options=options, run_metadata=run_metadata)
             fetched_timeline = timeline.Timeline(run_metadata.step_stats)
             chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            many_runs_timeline.update_timeline(chrome_trace)
+            if iter >= 50:
+                many_runs_timeline.update_timeline(chrome_trace)
             train_cost = outs[2]
             train_mrr = outs[5]
             if train_shadow_mrr is None:
