@@ -55,12 +55,12 @@ FLAGS = flags.FLAGS
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 #core params..
-flags.DEFINE_string('model', 'graphsage', 'model names. See README for possible values.')  
+flags.DEFINE_string('model', 'graphsage', 'model names. See README for possible values.')
 flags.DEFINE_float('learning_rate', 0.00001, 'initial learning rate.')
 flags.DEFINE_string("model_size", "small", "Can be big or small; model specific def'ns")
 flags.DEFINE_string('train_prefix', '', 'name of the object file that stores the training data. must be specified.')
 
-# left to default values in main experiments 
+# left to default values in main experiments
 flags.DEFINE_integer('epochs', 1, 'number of epochs to train.')
 flags.DEFINE_float('dropout', 0.0, 'dropout rate (1 - keep probability).')
 flags.DEFINE_float('weight_decay', 0.0, 'weight for l2 loss on embedding matrix.')
@@ -102,7 +102,7 @@ def log_dir():
 def evaluate(sess, model, minibatch_iter, size=None):
     t_test = time.time()
     feed_dict_val = minibatch_iter.val_feed_dict(size)
-    outs_val = sess.run([model.loss, model.ranks, model.mrr], 
+    outs_val = sess.run([model.loss, model.ranks, model.mrr],
                         feed_dict=feed_dict_val)
     return outs_val[0], outs_val[1], outs_val[2], (time.time() - t_test)
 
@@ -115,7 +115,7 @@ def incremental_evaluate(sess, model, minibatch_iter, size):
     while not finished:
         feed_dict_val, finished, _ = minibatch_iter.incremental_val_feed_dict(size, iter_num)
         iter_num += 1
-        outs_val = sess.run([model.loss, model.ranks, model.mrr], 
+        outs_val = sess.run([model.loss, model.ranks, model.mrr],
                             feed_dict=feed_dict_val)
         val_losses.append(outs_val[0])
         val_mrrs.append(outs_val[2])
@@ -131,7 +131,7 @@ def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
     while not finished:
         feed_dict_val, finished, edges = minibatch_iter.incremental_embed_feed_dict(size, iter_num)
         iter_num += 1
-        outs_val = sess.run([model.loss, model.mrr, model.outputs1], 
+        outs_val = sess.run([model.loss, model.mrr, model.outputs1],
                             feed_dict=feed_dict_val)
         #ONLY SAVE FOR embeds1 because of planetoid
         for i, edge in enumerate(edges):
@@ -170,10 +170,10 @@ def train(train_data, test_data=None):
 
     context_pairs = train_data[3] if FLAGS.random_context else None
     placeholders = construct_placeholders()
-    minibatch = EdgeMinibatchIterator(G, 
+    minibatch = EdgeMinibatchIterator(G,
             id_map,
             placeholders, batch_size=FLAGS.batch_size,
-            max_degree=FLAGS.max_degree, 
+            max_degree=FLAGS.max_degree,
             num_neg_samples=FLAGS.neg_sample_size,
             context_pairs = context_pairs)
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
@@ -185,11 +185,11 @@ def train(train_data, test_data=None):
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
-        model = SampleAndAggregate(placeholders, 
+        model = SampleAndAggregate(placeholders,
                                      features,
                                      adj_info,
                                      minibatch.deg,
-                                     layer_infos=layer_infos, 
+                                     layer_infos=layer_infos,
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
                                      logging=True)
@@ -199,11 +199,11 @@ def train(train_data, test_data=None):
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, 2*FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, 2*FLAGS.dim_2)]
 
-        model = SampleAndAggregate(placeholders, 
+        model = SampleAndAggregate(placeholders,
                                      features,
                                      adj_info,
                                      minibatch.deg,
-                                     layer_infos=layer_infos, 
+                                     layer_infos=layer_infos,
                                      aggregator_type="gcn",
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
@@ -215,11 +215,11 @@ def train(train_data, test_data=None):
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
-        model = SampleAndAggregate(placeholders, 
+        model = SampleAndAggregate(placeholders,
                                      features,
                                      adj_info,
                                      minibatch.deg,
-                                     layer_infos=layer_infos, 
+                                     layer_infos=layer_infos,
                                      identity_dim = FLAGS.identity_dim,
                                      aggregator_type="seq",
                                      model_size=FLAGS.model_size,
@@ -230,11 +230,11 @@ def train(train_data, test_data=None):
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
-        model = SampleAndAggregate(placeholders, 
+        model = SampleAndAggregate(placeholders,
                                     features,
                                     adj_info,
                                     minibatch.deg,
-                                     layer_infos=layer_infos, 
+                                     layer_infos=layer_infos,
                                      aggregator_type="maxpool",
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
@@ -244,11 +244,11 @@ def train(train_data, test_data=None):
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
-        model = SampleAndAggregate(placeholders, 
+        model = SampleAndAggregate(placeholders,
                                     features,
                                     adj_info,
                                     minibatch.deg,
-                                     layer_infos=layer_infos, 
+                                     layer_infos=layer_infos,
                                      aggregator_type="meanpool",
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
@@ -267,12 +267,12 @@ def train(train_data, test_data=None):
     config.gpu_options.allow_growth = True
     #config.gpu_options.per_process_gpu_memory_fraction = GPU_MEM_FRACTION
     config.allow_soft_placement = True
-    
+
     # Initialize session
     sess = tf.Session(config=config)
     merged = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(log_dir(), sess.graph)
-     
+
     # Init variables
     sess.run(tf.global_variables_initializer(), feed_dict={adj_info_ph: minibatch.adj})
 
@@ -282,7 +282,7 @@ def train(train_data, test_data=None):
     many_runs_timeline = TimeLiner()
 
     # Train model
-    
+
     train_shadow_mrr = None
     shadow_mrr = None
 
@@ -292,8 +292,8 @@ def train(train_data, test_data=None):
 
     train_adj_info = tf.assign(adj_info, minibatch.adj)
     val_adj_info = tf.assign(adj_info, minibatch.test_adj)
-    for epoch in range(FLAGS.epochs): 
-        minibatch.shuffle() 
+    for epoch in range(FLAGS.epochs):
+        minibatch.shuffle()
 
         iter = 0
         print('Epoch: %04d' % (epoch + 1))
@@ -305,11 +305,11 @@ def train(train_data, test_data=None):
 
             t = time.time()
             # Training step
-            outs = sess.run([merged, model.opt_op, model.loss, model.ranks, model.aff_all, 
+            outs = sess.run([merged, model.opt_op, model.loss, model.ranks, model.aff_all,
                     model.mrr, model.outputs1], feed_dict=feed_dict, options=options, run_metadata=run_metadata)
             fetched_timeline = timeline.Timeline(run_metadata.step_stats)
             chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            if iter >= 50:
+            if total_steps >= 50:
                 many_runs_timeline.update_timeline(chrome_trace)
             train_cost = outs[2]
             train_mrr = outs[5]
@@ -331,17 +331,17 @@ def train(train_data, test_data=None):
 
             if total_steps % FLAGS.print_every == 0:
                 summary_writer.add_summary(outs[0], total_steps)
-    
+
             # Print results
             avg_time = (avg_time * total_steps + time.time() - t) / (total_steps + 1)
 
             if total_steps % FLAGS.print_every == 0:
-                print("Iter:", '%04d' % iter, 
+                print("Iter:", '%04d' % iter,
                       "train_loss=", "{:.5f}".format(train_cost),
-                      "train_mrr=", "{:.5f}".format(train_mrr), 
+                      "train_mrr=", "{:.5f}".format(train_mrr),
                       "train_mrr_ema=", "{:.5f}".format(train_shadow_mrr), # exponential moving average
                       "val_loss=", "{:.5f}".format(val_cost),
-                      "val_mrr=", "{:.5f}".format(val_mrr), 
+                      "val_mrr=", "{:.5f}".format(val_mrr),
                       "val_mrr_ema=", "{:.5f}".format(shadow_mrr), # exponential moving average
                       "time=", "{:.5f}".format(avg_time))
 
@@ -366,7 +366,7 @@ def train(train_data, test_data=None):
             # stopping the gradient for the already trained nodes
             train_ids = tf.constant([[id_map[n]] for n in G.nodes_iter() if not G.node[n]['val'] and not G.node[n]['test']],
                     dtype=tf.int32)
-            test_ids = tf.constant([[id_map[n]] for n in G.nodes_iter() if G.node[n]['val'] or G.node[n]['test']], 
+            test_ids = tf.constant([[id_map[n]] for n in G.nodes_iter() if G.node[n]['val'] or G.node[n]['test']],
                     dtype=tf.int32)
             update_nodes = tf.nn.embedding_lookup(model.context_embeds, tf.squeeze(test_ids))
             no_update_nodes = tf.nn.embedding_lookup(model.context_embeds,tf.squeeze(train_ids))
@@ -382,15 +382,15 @@ def train(train_data, test_data=None):
             pairs = run_random_walks(G, nodes, num_walks=50)
             walk_time = time.time() - start_time
 
-            test_minibatch = EdgeMinibatchIterator(G, 
+            test_minibatch = EdgeMinibatchIterator(G,
                 id_map,
                 placeholders, batch_size=FLAGS.batch_size,
-                max_degree=FLAGS.max_degree, 
+                max_degree=FLAGS.max_degree,
                 num_neg_samples=FLAGS.neg_sample_size,
                 context_pairs = pairs,
                 n2v_retrain=True,
                 fixed_n2v=True)
-            
+
             start_time = time.time()
             print("Doing test training for n2v.")
             test_steps = 0
@@ -399,10 +399,10 @@ def train(train_data, test_data=None):
                 while not test_minibatch.end():
                     feed_dict = test_minibatch.next_minibatch_feed_dict()
                     feed_dict.update({placeholders['dropout']: FLAGS.dropout})
-                    outs = sess.run([model.opt_op, model.loss, model.ranks, model.aff_all, 
+                    outs = sess.run([model.opt_op, model.loss, model.ranks, model.aff_all,
                         model.mrr, model.outputs1], feed_dict=feed_dict)
                     if test_steps % FLAGS.print_every == 0:
-                        print("Iter:", '%04d' % test_steps, 
+                        print("Iter:", '%04d' % test_steps,
                               "train_loss=", "{:.5f}".format(outs[1]),
                               "train_mrr=", "{:.5f}".format(outs[-2]))
                     test_steps += 1
@@ -412,7 +412,7 @@ def train(train_data, test_data=None):
             print("Walk time: ", walk_time)
             print("Train time: ", train_time)
 
-    
+
 
 def main(argv=None):
     print("Loading training data..")
