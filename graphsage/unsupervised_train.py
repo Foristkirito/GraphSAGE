@@ -2,6 +2,8 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import tempfile
+import json
 import time
 import tensorflow as tf
 import numpy as np
@@ -10,6 +12,34 @@ from graphsage.models import SampleAndAggregate, SAGEInfo, Node2VecModel
 from graphsage.minibatch import EdgeMinibatchIterator
 from graphsage.neigh_samplers import UniformNeighborSampler
 from graphsage.utils import load_data
+# for profiling tensorflow
+from tensorflow.python.client import timeline
+
+class TimeLiner:
+    '''
+    data flow graph profile class
+    '''
+    _timeline_dict = None
+
+    def update_timeline(self, chrome_trace):
+        # convert crome trace to python dict
+        chrome_trace_dict = json.loads(chrome_trace)
+        # for first run store full trace
+        if self._timeline_dict is None:
+            self._timeline_dict = chrome_trace_dict
+        # for other - update only time consumption, not definitions
+        else:
+            for event in chrome_trace_dict['traceEvents']:
+                # events time consumption started with 'ts' prefix
+                if 'ts' in event:
+                    self._timeline_dict['traceEvents'].append(event)
+
+    def save(self, f_name):
+        with open(f_name, 'w') as f:
+            json.dump(self._timeline_dict, f)
+
+
+
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 
@@ -245,7 +275,12 @@ def train(train_data, test_data=None):
      
     # Init variables
     sess.run(tf.global_variables_initializer(), feed_dict={adj_info_ph: minibatch.adj})
-    
+
+    # profile init
+    options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+    run_metadata = tf.RunMetadata()
+    many_runs_timeline = TimeLiner()
+
     # Train model
     
     train_shadow_mrr = None
@@ -271,7 +306,10 @@ def train(train_data, test_data=None):
             t = time.time()
             # Training step
             outs = sess.run([merged, model.opt_op, model.loss, model.ranks, model.aff_all, 
-                    model.mrr, model.outputs1], feed_dict=feed_dict)
+                    model.mrr, model.outputs1], feed_dict=feed_dict, options=options, run_metadata=run_metadata)
+            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            chrome_trace = fetched_timeline.generate_chrome_trace_format()
+            many_runs_timeline.update_timeline(chrome_trace)
             train_cost = outs[2]
             train_mrr = outs[5]
             if train_shadow_mrr is None:
@@ -314,7 +352,9 @@ def train(train_data, test_data=None):
 
         if total_steps > FLAGS.max_total_steps:
                 break
-    
+
+    # write profile data into json format
+    many_runs_timeline.save('graphsage_time.json')
     print("Optimization Finished!")
     if FLAGS.save_embeddings:
         sess.run(val_adj_info.op)
