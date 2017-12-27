@@ -19,15 +19,13 @@ class EdgeMinibatchIterator(object):
     n2v_retrain -- signals that the iterator is being used to add new embeddings to a n2v model
     fixed_n2v -- signals that the iterator is being used to retrain n2v with only existing nodes as context
     """
-    def __init__(self, G, id2idx, 
-            placeholders, context_pairs=None, batch_size=100, max_degree=25,
+    def __init__(self, G, id2idx, context_pairs=None, batch_size=100, max_degree=25,
             n2v_retrain=False, fixed_n2v=False,
             **kwargs):
 
         self.G = G
         self.nodes = G.nodes()
         self.id2idx = id2idx
-        self.placeholders = placeholders
         self.batch_size = batch_size
         self.max_degree = max_degree
         self.batch_num = 0
@@ -52,6 +50,9 @@ class EdgeMinibatchIterator(object):
         print(len([n for n in G.nodes() if not G.node[n]['test'] and not G.node[n]['val']]), 'train nodes')
         print(len([n for n in G.nodes() if G.node[n]['test'] or G.node[n]['val']]), 'test nodes')
         self.val_set_size = len(self.val_edges)
+
+    def set_place_holder(self, placeholders):
+        self.placeholders = placeholders
 
     def _n2v_prune(self, edges):
         is_val = lambda n : self.G.node[n]["val"] or self.G.node[n]["test"]

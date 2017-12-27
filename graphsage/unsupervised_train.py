@@ -159,7 +159,7 @@ def construct_placeholders():
     }
     return placeholders
 
-def train(train_data, model_name = "graphsage_mean", profile = False, test_data=None):
+def train(train_data, minibatch, model_name = "graphsage_mean", profile = False, test_data=None):
     G = train_data[0]
     features = train_data[1]
     id_map = train_data[2]
@@ -170,12 +170,7 @@ def train(train_data, model_name = "graphsage_mean", profile = False, test_data=
 
     context_pairs = train_data[3] if FLAGS.random_context else None
     placeholders = construct_placeholders()
-    minibatch = EdgeMinibatchIterator(G,
-            id_map,
-            placeholders, batch_size=FLAGS.batch_size,
-            max_degree=FLAGS.max_degree,
-            num_neg_samples=FLAGS.neg_sample_size,
-            context_pairs = context_pairs)
+    minibatch.set_place_holder(placeholders)
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
     adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
@@ -371,7 +366,8 @@ def train(train_data, model_name = "graphsage_mean", profile = False, test_data=
         with open(file_name, "w") as f:
             f.write("time= {:.5f}s".format(avg_time))
     print("Optimization Finished!")
-    if FLAGS.save_embeddings:
+    '''
+        if FLAGS.save_embeddings:
         sess.run(val_adj_info.op)
 
         save_val_embeddings(sess, model, minibatch, FLAGS.validate_batch_size, log_dir())
@@ -425,6 +421,8 @@ def train(train_data, model_name = "graphsage_mean", profile = False, test_data=
             print("Total time: ", train_time+walk_time)
             print("Walk time: ", walk_time)
             print("Train time: ", train_time)
+    '''
+
 
 
 
@@ -432,12 +430,27 @@ def main(argv=None):
     print("Loading training data..")
     train_data = load_data(FLAGS.train_prefix, load_walks=True)
     print("Done loading training data..")
-    models = ["graphsage_mean", "gcn", "graphsage_seq", "graphsage_seq", "graphsage_maxpool", "graphsage_meanpool"]
+    models = ["gcn", "graphsage_seq", "graphsage_seq", "graphsage_maxpool", "graphsage_meanpool"]
+    G = train_data[0]
+    features = train_data[1]
+    id_map = train_data[2]
+
+    if not features is None:
+        # pad with dummy zero vector
+        features = np.vstack([features, np.zeros((features.shape[1],))])
+
+    context_pairs = train_data[3] if FLAGS.random_context else None
+    minibatch = EdgeMinibatchIterator(G,
+                                      id_map,
+                                      batch_size=FLAGS.batch_size,
+                                      max_degree=FLAGS.max_degree,
+                                      num_neg_samples=FLAGS.neg_sample_size,
+                                      context_pairs=context_pairs)
     for model in models:
-        train(train_data, model, True)
+        train(train_data, minibatch, model, True)
         tf.reset_default_graph()
         print("train {} profile done".format(model))
-        train(train_data, model, False)
+        train(train_data, minibatch, model, False)
         tf.reset_default_graph()
         print("train {} no profile done".format(model))
 
