@@ -159,7 +159,7 @@ def construct_placeholders():
     }
     return placeholders
 
-def train(train_data, test_data=None):
+def train(train_data, model_name = "graphsage_mean", profile = False, test_data=None):
     G = train_data[0]
     features = train_data[1]
     id_map = train_data[2]
@@ -179,7 +179,7 @@ def train(train_data, test_data=None):
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
     adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
-    if FLAGS.model == 'graphsage_mean':
+    if model_name == 'graphsage_mean':
         # Create model
         sampler = UniformNeighborSampler(adj_info)
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
@@ -193,7 +193,7 @@ def train(train_data, test_data=None):
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
                                      logging=True)
-    elif FLAGS.model == 'gcn':
+    elif model_name == 'gcn':
         # Create model
         sampler = UniformNeighborSampler(adj_info)
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, 2*FLAGS.dim_1),
@@ -210,7 +210,7 @@ def train(train_data, test_data=None):
                                      concat=False,
                                      logging=True)
 
-    elif FLAGS.model == 'graphsage_seq':
+    elif model_name == 'graphsage_seq':
         sampler = UniformNeighborSampler(adj_info)
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
@@ -225,7 +225,7 @@ def train(train_data, test_data=None):
                                      model_size=FLAGS.model_size,
                                      logging=True)
 
-    elif FLAGS.model == 'graphsage_maxpool':
+    elif model_name == 'graphsage_maxpool':
         sampler = UniformNeighborSampler(adj_info)
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
@@ -239,7 +239,7 @@ def train(train_data, test_data=None):
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
                                      logging=True)
-    elif FLAGS.model == 'graphsage_meanpool':
+    elif model_name == 'graphsage_meanpool':
         sampler = UniformNeighborSampler(adj_info)
         layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
@@ -254,7 +254,7 @@ def train(train_data, test_data=None):
                                      identity_dim = FLAGS.identity_dim,
                                      logging=True)
 
-    elif FLAGS.model == 'n2v':
+    elif model_name == 'n2v':
         model = Node2VecModel(placeholders, features.shape[0],
                                        minibatch.deg,
                                        #2x because graphsage uses concat
@@ -305,12 +305,16 @@ def train(train_data, test_data=None):
 
             t = time.time()
             # Training step
-            outs = sess.run([merged, model.opt_op, model.loss, model.ranks, model.aff_all,
-                    model.mrr, model.outputs1], feed_dict=feed_dict, options=options, run_metadata=run_metadata)
-            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-            chrome_trace = fetched_timeline.generate_chrome_trace_format()
-            if total_steps >= 50:
-                many_runs_timeline.update_timeline(chrome_trace)
+            if profile:
+                outs = sess.run([merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1], feed_dict=feed_dict, options=options, run_metadata=run_metadata)
+                fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                chrome_trace = fetched_timeline.generate_chrome_trace_format()
+                if total_steps >= 50:
+                    many_runs_timeline.update_timeline(chrome_trace)
+            else:
+                outs = sess.run(
+                    [merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1],
+                    feed_dict=feed_dict)
             train_cost = outs[2]
             train_mrr = outs[5]
             if train_shadow_mrr is None:
@@ -333,7 +337,8 @@ def train(train_data, test_data=None):
                 summary_writer.add_summary(outs[0], total_steps)
 
             # Print results
-            avg_time = (avg_time * total_steps + time.time() - t) / (total_steps + 1)
+            if total_steps >= 50:
+                avg_time = (avg_time * (total_steps - 50) + time.time() - t) / (total_steps - 50 + 1)
 
             if total_steps % FLAGS.print_every == 0:
                 print("Iter:", '%04d' % iter,
@@ -354,8 +359,17 @@ def train(train_data, test_data=None):
         if total_steps > FLAGS.max_total_steps:
                 break
 
-    # write profile data into json format
-    many_runs_timeline.save('graphsage_time.json')
+    if profile:
+        # write profile data into json format
+        file_name = model_name + ".json"
+        many_runs_timeline.save(file_name)
+        file_name = model_name + "_profile_time.txt"
+        with open(file_name, "w") as f:
+            f.write("time= {:.5f}s".format(avg_time))
+    else:
+        file_name = model_name + "_no_profile_time.txt"
+        with open(file_name, "w") as f:
+            f.write("time= {:.5f}s".format(avg_time))
     print("Optimization Finished!")
     if FLAGS.save_embeddings:
         sess.run(val_adj_info.op)
@@ -418,7 +432,10 @@ def main(argv=None):
     print("Loading training data..")
     train_data = load_data(FLAGS.train_prefix, load_walks=True)
     print("Done loading training data..")
-    train(train_data)
+    models = ["graphsage_mean", "gcn", "graphsage_seq", "graphsage_seq", "graphsage_maxpool", "graphsage_meanpool"]
+    for model in models:
+        train(train_data, model, True)
+        train(train_data, model, False)
 
 if __name__ == '__main__':
     tf.app.run()
