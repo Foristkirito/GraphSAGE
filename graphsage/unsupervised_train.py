@@ -436,6 +436,7 @@ def main(argv=None):
     for model in models:
         train(train_data, model, True)
         train(train_data, model, False)
+        print("train {} profile and no profile done".format(model))
 
 if __name__ == '__main__':
     tf.app.run()
