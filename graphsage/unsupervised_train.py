@@ -76,7 +76,7 @@ flags.DEFINE_integer('n2v_test_epochs', 1, 'Number of new SGD epochs for n2v.')
 flags.DEFINE_integer('identity_dim', 0, 'Set to positive value to use identity embedding features of that dimension. Default 0.')
 
 #logging, saving, validation settings etc.
-flags.DEFINE_boolean('save_embeddings', True, 'whether to save embeddings for all nodes after training')
+flags.DEFINE_boolean('save_embeddings', False, 'whether to save embeddings for all nodes after training')
 flags.DEFINE_string('base_log_dir', '.', 'base directory for logging and saving embeddings')
 flags.DEFINE_integer('validate_iter', 5000, "how often to run a validation minibatch.")
 flags.DEFINE_integer('validate_batch_size', 256, "how many nodes per validation sample.")
@@ -435,8 +435,11 @@ def main(argv=None):
     models = ["graphsage_mean", "gcn", "graphsage_seq", "graphsage_seq", "graphsage_maxpool", "graphsage_meanpool"]
     for model in models:
         train(train_data, model, True)
+        tf.reset_default_graph()
+        print("train {} profile done".format(model))
         train(train_data, model, False)
-        print("train {} profile and no profile done".format(model))
+        tf.reset_default_graph()
+        print("train {} no profile done".format(model))
 
 if __name__ == '__main__':
     tf.app.run()
