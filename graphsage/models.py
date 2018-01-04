@@ -344,19 +344,19 @@ class SampleAndAggregate(GeneralizedModel):
 
            
         # perform "convolution"
-        self.samples1, self.support_sizes1 = self.sample(self.inputs1, self.layer_infos)
-        self.samples2, self.support_sizes2 = self.sample(self.inputs2, self.layer_infos)
+        samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
+        samples2, support_sizes2 = self.sample(self.inputs2, self.layer_infos)
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
-        self.outputs1, self.aggregators = self.aggregate(self.samples1, [self.features], self.dims, num_samples,
-                self.support_sizes1, concat=self.concat, model_size=self.model_size)
-        self.outputs2, _ = self.aggregate(self.samples2, [self.features], self.dims, num_samples,
-                self.support_sizes2, aggregators=self.aggregators, concat=self.concat,
+        self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
+                support_sizes1, concat=self.concat, model_size=self.model_size)
+        self.outputs2, _ = self.aggregate(samples2, [self.features], self.dims, num_samples,
+                support_sizes2, aggregators=self.aggregators, concat=self.concat,
                 model_size=self.model_size)
 
-        self.neg_samples_out, self.neg_support_sizes = self.sample(self.neg_samples, self.layer_infos,
+        neg_samples_out, neg_support_sizes = self.sample(self.neg_samples, self.layer_infos,
             FLAGS.neg_sample_size)
-        self.neg_outputs, _ = self.aggregate(self.neg_samples_out, [self.features], self.dims, num_samples,
-                self.neg_support_sizes, batch_size=FLAGS.neg_sample_size, aggregators=self.aggregators,
+        self.neg_outputs, _ = self.aggregate(neg_samples_out, [self.features], self.dims, num_samples,
+                neg_support_sizes, batch_size=FLAGS.neg_sample_size, aggregators=self.aggregators,
                 concat=self.concat, model_size=self.model_size)
 
         dim_mult = 2 if self.concat else 1
@@ -368,6 +368,12 @@ class SampleAndAggregate(GeneralizedModel):
         self.outputs1 = tf.nn.l2_normalize(self.outputs1, 1)
         self.outputs2 = tf.nn.l2_normalize(self.outputs2, 1)
         self.neg_outputs = tf.nn.l2_normalize(self.neg_outputs, 1)
+        self.samples1 = tf.convert_to_tensor(samples1, dtype=tf.int32)
+        self.support_sizes1 = tf.convert_to_tensor(support_sizes1, dtype=tf.int32)
+        self.samples2 = tf.convert_to_tensor(samples2, dtype=tf.int32)
+        self.support_sizes2 = tf.convert_to_tensor(support_sizes2, dtype=tf.int32)
+        self.neg_samples_out = tf.convert_to_tensor(neg_samples_out, dtype=tf.int32)
+        self.neg_support_sizes = tf.convert_to_tensor(neg_support_sizes, dtype=tf.int32)
 
     def build(self):
         self._build()
