@@ -84,6 +84,10 @@ flags.DEFINE_integer('gpu', 1, "which gpu to use.")
 flags.DEFINE_integer('print_every', 50, "How often to print training info.")
 flags.DEFINE_integer('max_total_steps', 10**10, "Maximum total number of iterations")
 
+# for naive implementation with minibatch loader
+flags.DEFINE_integer('nodes_number', 232965, "node number in graph")
+flags.DEFINE_integer('feats_dim', 602, "features dimension of each node features")
+
 os.environ["CUDA_VISIBLE_DEVICES"]=str(FLAGS.gpu)
 
 GPU_MEM_FRACTION = 0.8
@@ -149,11 +153,14 @@ def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
 def construct_placeholders():
     # Define placeholders
     placeholders = {
-        'batch1' : tf.placeholder(tf.int32, shape=(None), name='batch1'),
-        'batch2' : tf.placeholder(tf.int32, shape=(None), name='batch2'),
+        'sample1' : tf.placeholder(tf.int32, shape=(None), name='sample1'),
+        'support_size1' : tf.placeholder(tf.int32, shape=(None), name='support_size1'),
+        'sample2' : tf.placeholder(tf.int32, shape=(None), name='sample2'),
+        'support_size2' : tf.placeholder(tf.int32, shape=(None), name='support_size2'),
         # negative samples for all nodes in the batch
-        'neg_samples': tf.placeholder(tf.int32, shape=(None,),
-            name='neg_sample_size'),
+        'neg_samples' : tf.placeholder(tf.int32, shape=(None), name='neg_samples'),
+        'neg_sizes' : tf.placeholder(tf.int32, shape=(None), name='neg_sizes'),
+        # other parameters
         'dropout': tf.placeholder_with_default(0., shape=(), name='dropout'),
         'batch_size' : tf.placeholder(tf.int32, name='batch_size'),
     }
@@ -161,14 +168,16 @@ def construct_placeholders():
 
 def train(train_data, minibatch, model_name = "graphsage_mean", profile = False, test_data=None):
     G = train_data[0]
-    features = train_data[1]
-    id_map = train_data[2]
-
-    if not features is None:
+    # features = train_data[1]
+    id_map = train_data[1]
+    '''
+        if not features is None:
         # pad with dummy zero vector
         features = np.vstack([features, np.zeros((features.shape[1],))])
+    '''
 
-    context_pairs = train_data[3] if FLAGS.random_context else None
+
+    context_pairs = train_data[2] if FLAGS.random_context else None
     placeholders = construct_placeholders()
     minibatch.set_place_holder(placeholders)
     adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
@@ -430,16 +439,17 @@ def main(argv=None):
     print("Loading training data..")
     train_data = load_data(FLAGS.train_prefix, load_walks=True)
     print("Done loading training data..")
-    models = ["gcn", "graphsage_seq", "graphsage_seq", "graphsage_maxpool", "graphsage_meanpool"]
+    models = ["graphsage_mean", "gcn", "graphsage_seq", "graphsage_maxpool", "graphsage_meanpool"]
     G = train_data[0]
-    features = train_data[1]
-    id_map = train_data[2]
+    # features = train_data[1]
+    id_map = train_data[1]
+    '''
+        if not features is None:
+            # pad with dummy zero vector
+            features = np.vstack([features, np.zeros((features.shape[1],))])
+    '''
 
-    if not features is None:
-        # pad with dummy zero vector
-        features = np.vstack([features, np.zeros((features.shape[1],))])
-
-    context_pairs = train_data[3] if FLAGS.random_context else None
+    context_pairs = train_data[2] if FLAGS.random_context else None
     minibatch = EdgeMinibatchIterator(G,
                                       id_map,
                                       batch_size=FLAGS.batch_size,

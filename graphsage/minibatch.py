@@ -20,7 +20,7 @@ class EdgeMinibatchIterator(object):
     fixed_n2v -- signals that the iterator is being used to retrain n2v with only existing nodes as context
     """
     def __init__(self, G, id2idx, context_pairs=None, batch_size=100, max_degree=25,
-            n2v_retrain=False, fixed_n2v=False,
+            n2v_retrain=False, fixed_n2v=False, layer_infos=None,
             **kwargs):
 
         self.G = G
@@ -29,7 +29,7 @@ class EdgeMinibatchIterator(object):
         self.batch_size = batch_size
         self.max_degree = max_degree
         self.batch_num = 0
-
+        self.layer_infos = layer_infos
         self.nodes = np.random.permutation(G.nodes())
         self.adj, self.deg = self.construct_adj()
         self.test_adj = self.construct_test_adj()
@@ -111,15 +111,53 @@ class EdgeMinibatchIterator(object):
     def end(self):
         return self.batch_num * self.batch_size >= len(self.train_edges)
 
+    def sample(self, inputs, batch_size=None):
+        """ Sample neighbors to be the supportive fields for multi-layer convolutions.
+
+        Args:
+            inputs: batch inputs
+            batch_size: the number of inputs (different for batch inputs and negative samples).
+        """
+        layer_infos = self.layer_infos
+        if batch_size is None:
+            batch_size = self.batch_size
+        samples = [inputs]
+        # size of convolution support at each layer per node
+        support_size = 1
+        support_sizes = [support_size]
+        for k in range(len(layer_infos)):
+            t = len(layer_infos) - k - 1
+            support_size *= layer_infos[t].num_samples
+            # sampler = layer_infos[t].neigh_sampler
+            # node = sampler((samples[k], layer_infos[t].num_samples))
+            adj_lists = np.take(self.adj, samples[k])
+            adj_lists = np.random.shuffle(adj_lists.transpose()).transpose()
+            adj_lists = [row_tmp[-1:samples[k]] for row_tmp in adj_lists]
+            samples.append(adj_lists.reshape(support_size * batch_size, ))
+            # samples.append(tf.reshape(node, [support_size * batch_size, ]))
+            support_sizes.append(support_size)
+        return samples, support_sizes
+
     def batch_feed_dict(self, batch_edges):
         batch1 = []
         batch2 = []
         for node1, node2 in batch_edges:
             batch1.append(self.id2idx[node1])
             batch2.append(self.id2idx[node2])
+        batch_size = len(batch_edges)
+        # begin to sample neighbors
+        sample1_tmp, support_size1 = self.sample(batch1, batch_size)
+        sample1 = []
+        for sample1_ele in sample1_tmp:
+            sample1.append(sample1_ele)
+        sample2_tmp, support_size2 = self.sample(batch2, batch_size)
+        sample2 = []
+        for sample2_ele in sample2_tmp:
+            sample2.append(sample2_ele)
+        # begin to sample negative samples
 
         feed_dict = dict()
-        feed_dict.update({self.placeholders['batch_size'] : len(batch_edges)})
+        feed_dict.update({self.placeholders['batch_size'] : batch_size})
         feed_dict.update({self.placeholders['batch1']: batch1})
         feed_dict.update({self.placeholders['batch2']: batch2})
 
@@ -130,6 +168,7 @@ class EdgeMinibatchIterator(object):
         self.batch_num += 1
         end_idx = min(start_idx + self.batch_size, len(self.train_edges))
         batch_edges = self.train_edges[start_idx : end_idx]
+
         return self.batch_feed_dict(batch_edges)
 
     def num_training_batches(self):

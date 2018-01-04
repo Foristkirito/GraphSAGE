@@ -23,12 +23,13 @@ def load_data(prefix, normalize=True, load_walks=False):
         conversion = lambda n : int(n)
     else:
         conversion = lambda n : n
-
+    '''
     if os.path.exists(prefix + "-feats.npy"):
         feats = np.load(prefix + "-feats.npy")
     else:
         print("No features present.. Only identity features will be used.")
         feats = None
+    '''
     id_map = json.load(open(prefix + "-id_map.json"))
     id_map = {conversion(k):int(v) for k,v in id_map.items()}
     walks = []
@@ -58,7 +59,7 @@ def load_data(prefix, normalize=True, load_walks=False):
             G[edge[0]][edge[1]]['train_removed'] = True
         else:
             G[edge[0]][edge[1]]['train_removed'] = False
-
+    '''
     if normalize and not feats is None:
         from sklearn.preprocessing import StandardScaler
         train_ids = np.array([id_map[n] for n in G.nodes() if not G.node[n]['val'] and not G.node[n]['test']])
@@ -66,13 +67,13 @@ def load_data(prefix, normalize=True, load_walks=False):
         scaler = StandardScaler()
         scaler.fit(train_feats)
         feats = scaler.transform(feats)
-    
+    '''
     if load_walks:
         with open(prefix + "-walks.txt") as fp:
             for line in fp:
                 walks.append(map(conversion, line.split()))
 
-    return G, feats, id_map, walks, class_map
+    return G, id_map, walks, class_map
 
 def run_random_walks(G, nodes, num_walks=N_WALKS):
     pairs = []
