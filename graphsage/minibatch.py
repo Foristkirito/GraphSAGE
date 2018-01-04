@@ -49,6 +49,7 @@ class EdgeMinibatchIterator(object):
 
         print(len([n for n in G.nodes() if not G.node[n]['test'] and not G.node[n]['val']]), 'train nodes')
         print(len([n for n in G.nodes() if G.node[n]['test'] or G.node[n]['val']]), 'test nodes')
+        self.sample1 = np.load("")
         self.val_set_size = len(self.val_edges)
 
     def set_place_holder(self, placeholders):
@@ -110,33 +111,6 @@ class EdgeMinibatchIterator(object):
 
     def end(self):
         return self.batch_num * self.batch_size >= len(self.train_edges)
-
-    def sample(self, inputs, batch_size=None):
-        """ Sample neighbors to be the supportive fields for multi-layer convolutions.
-
-        Args:
-            inputs: batch inputs
-            batch_size: the number of inputs (different for batch inputs and negative samples).
-        """
-        layer_infos = self.layer_infos
-        if batch_size is None:
-            batch_size = self.batch_size
-        samples = [inputs]
-        # size of convolution support at each layer per node
-        support_size = 1
-        support_sizes = [support_size]
-        for k in range(len(layer_infos)):
-            t = len(layer_infos) - k - 1
-            support_size *= layer_infos[t].num_samples
-            # sampler = layer_infos[t].neigh_sampler
-            # node = sampler((samples[k], layer_infos[t].num_samples))
-            adj_lists = np.take(self.adj, samples[k])
-            adj_lists = np.random.shuffle(adj_lists.transpose()).transpose()
-            adj_lists = [row_tmp[-1:samples[k]] for row_tmp in adj_lists]
-            samples.append(adj_lists.reshape(support_size * batch_size, ))
-            # samples.append(tf.reshape(node, [support_size * batch_size, ]))
-            support_sizes.append(support_size)
-        return samples, support_sizes
 
     def batch_feed_dict(self, batch_edges):
         batch1 = []
