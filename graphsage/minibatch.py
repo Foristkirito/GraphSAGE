@@ -211,6 +211,7 @@ class EdgeMinibatchIterator(object):
         feed_dict.update({self.placeholders['neg_samples_2']: neg_samples[2]})
         feed_dict.update({self.placeholders['neg_sizes']: neg_support_size})
         feed_dict.update({self.placeholders['feats']: batch_feas})
+        feed_dict.update({self.placeholders['batch_size']: support_size1[0]})
         return feed_dict
 
     def next_minibatch_feed_dict(self):
