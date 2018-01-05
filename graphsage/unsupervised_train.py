@@ -299,12 +299,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
     train_adj_info = tf.assign(adj_info, minibatch.adj)
     val_adj_info = tf.assign(adj_info, minibatch.test_adj)
-    all_samples1 = []
-    all_support_size1 = []
-    all_samples2 = []
-    all_support_size2 = []
-    all_neg_samples = []
-    all_neg_support_size = []
     for epoch in range(FLAGS.epochs):
         minibatch.shuffle()
 
@@ -319,23 +313,17 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
             t = time.time()
             # Training step
             if profile:
-                outs = sess.run([merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1, model.samples1, model.support_sizes1, model.samples2, model.support_sizes2, model.neg_samples_out, model.neg_support_sizes], feed_dict=feed_dict, options=options, run_metadata=run_metadata)
+                outs = sess.run([merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1], feed_dict=feed_dict, options=options, run_metadata=run_metadata)
                 fetched_timeline = timeline.Timeline(run_metadata.step_stats)
                 chrome_trace = fetched_timeline.generate_chrome_trace_format()
                 if total_steps >= 50:
                     many_runs_timeline.update_timeline(chrome_trace)
             else:
                 outs = sess.run(
-                    [merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1, model.samples1, model.support_sizes1, model.samples2, model.support_sizes2, model.neg_samples_out, model.neg_support_sizes],
+                    [merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1],
                     feed_dict=feed_dict)
             train_cost = outs[2]
             train_mrr = outs[5]
-            all_samples1.append(outs[7])
-            all_support_size1.append(outs[8])
-            all_samples2.append(outs[9])
-            all_support_size2.append(outs[10])
-            all_neg_samples.append(outs[11])
-            all_neg_support_size.append(outs[12])
 
             if train_shadow_mrr is None:
                 train_shadow_mrr = train_mrr#
@@ -379,13 +367,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
         if total_steps > FLAGS.max_total_steps:
                 break
 
-    # begin to dump data into file
-    np.save("all_samples1.npy", np.array(all_samples1))
-    np.save("all_support_size1.npy", np.array(all_support_size1))
-    np.save("all_samples2.npy", np.array(all_samples2))
-    np.save("all_support_size2.npy", np.array(all_support_size2))
-    np.save("all_neg_samples.npy", np.array(all_neg_samples))
-    np.save("all_neg_support_size.npy", np.array(all_neg_support_size))
 
     if profile:
         # write profile data into json format
