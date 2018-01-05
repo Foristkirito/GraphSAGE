@@ -20,7 +20,7 @@ class EdgeMinibatchIterator(object):
     n2v_retrain -- signals that the iterator is being used to add new embeddings to a n2v model
     fixed_n2v -- signals that the iterator is being used to retrain n2v with only existing nodes as context
     """
-    def __init__(self, G, id2idx, context_pairs=None, batch_size=100, max_degree=25, neg_sample_size=20, fea_dim=602, fea_filename=None,
+    def __init__(self, G, id2idx, context_pairs=None, batch_size=100, max_degree=25, neg_sample_size=20, fea_dim=602, fea_filename=None, data_num=0,
             n2v_retrain=False, fixed_n2v=False, layer_infos=None,
             **kwargs):
 
@@ -64,6 +64,7 @@ class EdgeMinibatchIterator(object):
         self.val_set_size = len(self.val_edges)
         self.fd = os.open(self.fea_filename, os.O_RDONLY)
         self.fobj = os.fdopen(self.fd, "r")
+        self.f_map = np.memmap(self.fobj, dtype='float64', mode='r', shape=(data_num, self.fea_dim))
         self.mem_count = 0
 
     def set_place_holder(self, placeholders):
@@ -128,7 +129,10 @@ class EdgeMinibatchIterator(object):
 
     def load_feats(self, node_id):
         feas = []
-        node_number = len(node_id)
+        for per_node_idx in node_id:
+            feas.append(self.f_map[per_node_idx])
+
+        '''
         pre = node_id[0]
         end = node_id[0]
         for i in range(1, node_number):
@@ -136,7 +140,6 @@ class EdgeMinibatchIterator(object):
             if node_id[i] != (end - 1):
                 # begin to read pre fea to file
                 # print("mem count : {0}".format(self.mem_count))
-                fp = np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim))
                 feas.append(fp)
                 fp._mmap.close()
                 self.mem_count = self.mem_count + 1
@@ -148,7 +151,9 @@ class EdgeMinibatchIterator(object):
             feas.append(fp)
             fp._mmap.close()
             self.mem_count = self.mem_count + 1
-        return np.vstack(feas)
+        '''
+
+        return np.array(feas)
 
     def batch_feed_dict(self):
         batch_id = self.batch_num % self.total_batch_size

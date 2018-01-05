@@ -482,6 +482,7 @@ def main(argv=None):
                                       neg_sample_size=FLAGS.neg_sample_size,
                                       fea_dim=FLAGS.feats_dim,
                                       fea_filename=FLAGS.train_prefix + "-feats.npy",
+                                      data_num=FLAGS.nodes_number,
                                       context_pairs=context_pairs)
     for model in models:
         train(train_data, minibatch, model, True)
