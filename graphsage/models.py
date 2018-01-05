@@ -393,7 +393,7 @@ class SampleAndAggregate(GeneralizedModel):
         # TF graph management
         self._loss()
         self._accuracy()
-        self.loss = self.loss / tf.cast(self.batch_size, tf.float32)
+        self.loss = self.loss / tf.cast(self.batch_size, tf.float64)
         grads_and_vars = self.optimizer.compute_gradients(self.loss)
         clipped_grads_and_vars = [(tf.clip_by_value(grad, -5.0, 5.0) if grad is not None else None, var)
                 for grad, var in grads_and_vars]
