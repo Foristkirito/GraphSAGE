@@ -190,7 +190,7 @@ class SampleAndAggregate(GeneralizedModel):
     """
 
     def __init__(self, placeholders, adj, degrees,
-            layer_infos, concat=True, aggregator_type="mean",
+            layer_infos, concat=True, aggregator_type="mean", fea_dim=0,
             model_size="small", identity_dim=0,
             **kwargs):
         '''
@@ -225,6 +225,8 @@ class SampleAndAggregate(GeneralizedModel):
         #self.inputs1 = placeholders["batch1"]
         #self.inputs2 = placeholders["batch2"]
         start_point = 0
+        self.fea_dim = fea_dim
+        self.fea_dim = fea_dim
 
         self.sample1 = [placeholders['sample1_0'], placeholders['sample1_1'], placeholders['sample1_2']]
         self.support_size1 = placeholders['support_size1']
@@ -256,7 +258,7 @@ class SampleAndAggregate(GeneralizedModel):
         self.degrees = degrees
         self.concat = concat
         # _, columns = map(lambda i: i.value, self.features.get_shape())
-        self.dims = [(0 if self.features is None else 50) + identity_dim]
+        self.dims = [(0 if self.features is None else self.fea_dim) + identity_dim]
         self.dims.extend([layer_infos[i].output_dim for i in range(len(layer_infos))])
         self.batch_size = placeholders["batch_size"]
         self.placeholders = placeholders

@@ -203,6 +203,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      layer_infos=layer_infos,
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
+                                     fea_dim=FLAGS.feats_dim,
                                      logging=True)
     elif model_name == 'gcn':
         # Create model
@@ -218,6 +219,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
                                      concat=False,
+                                     fea_dim=FLAGS.feats_dim,
                                      logging=True)
 
     elif model_name == 'graphsage_seq':
@@ -232,6 +234,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      identity_dim = FLAGS.identity_dim,
                                      aggregator_type="seq",
                                      model_size=FLAGS.model_size,
+                                     fea_dim=FLAGS.feats_dim,
                                      logging=True)
 
     elif model_name == 'graphsage_maxpool':
@@ -246,6 +249,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      aggregator_type="maxpool",
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
+                                     fea_dim=FLAGS.feats_dim,
                                      logging=True)
     elif model_name == 'graphsage_meanpool':
         sampler = UniformNeighborSampler(adj_info)
@@ -259,6 +263,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      aggregator_type="meanpool",
                                      model_size=FLAGS.model_size,
                                      identity_dim = FLAGS.identity_dim,
+                                     fea_dim=FLAGS.feats_dim,
                                      logging=True)
 
     elif model_name == 'n2v':
