@@ -227,13 +227,13 @@ class SampleAndAggregate(GeneralizedModel):
         start_point = 0
 
         self.sample1 = [placeholders['sample1_0'], placeholders['sample1_1'], placeholders['sample1_2']]
-        self.support_size1 = tf.unstack(placeholders['support_size1'])
+        self.support_size1 = placeholders['support_size1']
 
         self.sample2 = [placeholders['sample2_0'], placeholders['sample2_1'], placeholders['sample2_2']]
-        self.support_size2 = tf.unstack(placeholders['support_size2'])
+        self.support_size2 = placeholders['support_size2']
 
         self.neg_samples = [placeholders['neg_samples_0'], placeholders['neg_samples_1'], placeholders['neg_samples_2']]
-        self.neg_support_size = tf.unstack(placeholders['neg_sizes'])
+        self.neg_support_size = placeholders['neg_sizes']
 
         self.model_size = model_size
         self.adj_info = adj
