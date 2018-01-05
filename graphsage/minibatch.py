@@ -157,29 +157,36 @@ class EdgeMinibatchIterator(object):
         samples1_flat = [batch_id_map[x] for x in samples1_flat]
         samples2_flat = [batch_id_map[x] for x in samples2_flat]
         neg_samples_flat = [batch_id_map[x] for x in neg_samples_flat]
-        # begin to split samples
+
         np.insert(support_size1, 0, 0)
         support_len = len(support_size1)
         samples1 = []
         for i in range(support_len - 1):
             samples1.append(samples1_flat[support_size1[i] * self.batch_size:support_size1[i + 1] * self.batch_size])
+        support_size1.pop(0)
+
 
         samples2 = []
         np.insert(support_size2, 0, 0)
         for i in range(support_len - 1):
             samples2.append(samples2_flat[support_size2[i] * self.batch_size:support_size2[i + 1] * self.batch_size])
+        support_size2.pop(0)
+
 
         neg_samples = []
         np.insert(neg_support_size, 0, 0)
         for i in range(support_len - 1):
             neg_samples.append(neg_samples_flat[neg_support_size[i] * self.neg_sample_size:neg_support_size[i + 1] * self.neg_sample_size])
+        neg_support_size.pop(0)
+
+        # begin to split samples
 
         feed_dict = dict()
-        feed_dict.update({self.placeholders['sample1'] : samples1})
+        feed_dict.update({self.placeholders['sample1'] : samples1_flat})
         feed_dict.update({self.placeholders['support_size1']: support_size1})
-        feed_dict.update({self.placeholders['sample2']: samples2})
+        feed_dict.update({self.placeholders['sample2']: samples2_flat})
         feed_dict.update({self.placeholders['support_size2']: support_size2})
-        feed_dict.update({self.placeholders['neg_samples']: neg_samples})
+        feed_dict.update({self.placeholders['neg_samples']: neg_samples_flat})
         feed_dict.update({self.placeholders['neg_sizes']: neg_support_size})
         feed_dict.update({self.placeholders['feats']: batch_feas})
         return feed_dict

@@ -224,12 +224,17 @@ class SampleAndAggregate(GeneralizedModel):
         # get info from placeholders...
         #self.inputs1 = placeholders["batch1"]
         #self.inputs2 = placeholders["batch2"]
-        self.sample1 = placeholders['sample1']
-        self.support_size1 = placeholders['support_size1']
-        self.sample2 = placeholders['sample2']
-        self.support_size2 = placeholders['support_size2']
-        self.neg_samples = placeholders['neg_samples']
-        self.neg_support_size = placeholders['neg_sizes']
+        start_point = 0
+
+        self.sample1 = tf.unstack(placeholders['sample1'])
+        self.support_size1 = tf.unstack(placeholders['support_size1'])
+
+        self.sample2 = tf.unstack(placeholders['sample2'])
+        self.support_size2 = tf.unstack(placeholders['support_size2'])
+
+        self.neg_samples = tf.unstack(placeholders['neg_samples'])
+        self.neg_support_size = tf.unstack(placeholders['neg_sizes'])
+
         self.model_size = model_size
         self.adj_info = adj
         self.features = placeholders["feats"]
