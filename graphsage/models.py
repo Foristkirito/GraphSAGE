@@ -360,10 +360,10 @@ class SampleAndAggregate(GeneralizedModel):
         #samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
         #samples2, support_sizes2 = self.sample(self.inputs2, self.layer_infos)
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
-        self.outputs1, self.aggregators = self.aggregate(self.samples1, [self.features], self.dims, num_samples,
-                self.support_sizes1, concat=self.concat, model_size=self.model_size)
-        self.outputs2, _ = self.aggregate(self.samples2, [self.features], self.dims, num_samples,
-                self.support_sizes2, aggregators=self.aggregators, concat=self.concat,
+        self.outputs1, self.aggregators = self.aggregate(self.sample1, [self.features], self.dims, num_samples,
+                self.support_size1, concat=self.concat, model_size=self.model_size)
+        self.outputs2, _ = self.aggregate(self.sample2, [self.features], self.dims, num_samples,
+                self.support_size2, aggregators=self.aggregators, concat=self.concat,
                 model_size=self.model_size)
 
         #neg_samples, neg_support_sizes = self.sample(self.neg_samples, self.layer_infos,
