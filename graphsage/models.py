@@ -189,7 +189,7 @@ class SampleAndAggregate(GeneralizedModel):
     Base implementation of unsupervised GraphSAGE
     """
 
-    def __init__(self, placeholders, features, adj, degrees,
+    def __init__(self, placeholders, adj, degrees,
             layer_infos, concat=True, aggregator_type="mean", 
             model_size="small", identity_dim=0,
             **kwargs):
@@ -222,10 +222,17 @@ class SampleAndAggregate(GeneralizedModel):
             raise Exception("Unknown aggregator: ", self.aggregator_cls)
 
         # get info from placeholders...
-        self.inputs1 = placeholders["batch1"]
-        self.inputs2 = placeholders["batch2"]
+        #self.inputs1 = placeholders["batch1"]
+        #self.inputs2 = placeholders["batch2"]
+        self.sample1 = placeholders['sample1']
+        self.support_size1 = placeholders['support_size1']
+        self.sample2 = placeholders['sample2']
+        self.support_size2 = placeholders['support_size2']
+        self.neg_samples = placeholders['neg_samples']
+        self.neg_support_size = placeholders['neg_sizes']
         self.model_size = model_size
         self.adj_info = adj
+        features = placeholders["feats"]
         if identity_dim > 0:
            self.embeds = tf.get_variable("node_embeddings", [adj.get_shape().as_list()[0], identity_dim])
         else:
@@ -330,6 +337,7 @@ class SampleAndAggregate(GeneralizedModel):
         return hidden[0], aggregators
 
     def _build(self):
+        '''
         labels = tf.reshape(
                 tf.cast(self.placeholders['batch2'], dtype=tf.int64),
                 [self.batch_size, 1])
@@ -341,22 +349,24 @@ class SampleAndAggregate(GeneralizedModel):
             range_max=len(self.degrees),
             distortion=0.75,
             unigrams=self.degrees.tolist()))
+        '''
+
 
            
         # perform "convolution"
-        samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
-        samples2, support_sizes2 = self.sample(self.inputs2, self.layer_infos)
+        #samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
+        #samples2, support_sizes2 = self.sample(self.inputs2, self.layer_infos)
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
-        self.outputs1, self.aggregators = self.aggregate(samples1, [self.features], self.dims, num_samples,
-                support_sizes1, concat=self.concat, model_size=self.model_size)
-        self.outputs2, _ = self.aggregate(samples2, [self.features], self.dims, num_samples,
-                support_sizes2, aggregators=self.aggregators, concat=self.concat,
+        self.outputs1, self.aggregators = self.aggregate(self.samples1, [self.features], self.dims, num_samples,
+                self.support_sizes1, concat=self.concat, model_size=self.model_size)
+        self.outputs2, _ = self.aggregate(self.samples2, [self.features], self.dims, num_samples,
+                self.support_sizes2, aggregators=self.aggregators, concat=self.concat,
                 model_size=self.model_size)
 
-        neg_samples, neg_support_sizes = self.sample(self.neg_samples, self.layer_infos,
-            FLAGS.neg_sample_size)
-        self.neg_outputs, _ = self.aggregate(neg_samples, [self.features], self.dims, num_samples,
-                neg_support_sizes, batch_size=FLAGS.neg_sample_size, aggregators=self.aggregators,
+        #neg_samples, neg_support_sizes = self.sample(self.neg_samples, self.layer_infos,
+         #   FLAGS.neg_sample_size)
+        self.neg_outputs, _ = self.aggregate(self.neg_samples, [self.features], self.dims, num_samples,
+                self.neg_support_size, batch_size=FLAGS.neg_sample_size, aggregators=self.aggregators,
                 concat=self.concat, model_size=self.model_size)
 
         dim_mult = 2 if self.concat else 1

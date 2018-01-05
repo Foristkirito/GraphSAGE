@@ -160,6 +160,8 @@ def construct_placeholders():
         # negative samples for all nodes in the batch
         'neg_samples' : tf.placeholder(tf.int32, shape=(None), name='neg_samples'),
         'neg_sizes' : tf.placeholder(tf.int32, shape=(None), name='neg_sizes'),
+        # features
+        'feats' : tf.placeholder(tf.float64, shape=(None), name='features'),
         # other parameters
         'dropout': tf.placeholder_with_default(0., shape=(), name='dropout'),
         'batch_size' : tf.placeholder(tf.int32, name='batch_size'),
@@ -190,7 +192,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                     features,
                                      adj_info,
                                      minibatch.deg,
                                      layer_infos=layer_infos,
@@ -204,7 +205,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                             SAGEInfo("node", sampler, FLAGS.samples_2, 2*FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                     features,
                                      adj_info,
                                      minibatch.deg,
                                      layer_infos=layer_infos,
@@ -220,7 +220,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                     features,
                                      adj_info,
                                      minibatch.deg,
                                      layer_infos=layer_infos,
@@ -235,7 +234,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                    features,
                                     adj_info,
                                     minibatch.deg,
                                      layer_infos=layer_infos,
@@ -249,7 +247,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                             SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                    features,
                                     adj_info,
                                     minibatch.deg,
                                      layer_infos=layer_infos,
@@ -259,7 +256,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      logging=True)
 
     elif model_name == 'n2v':
-        model = Node2VecModel(placeholders, features.shape[0],
+        model = Node2VecModel(placeholders, 602,
                                        minibatch.deg,
                                        #2x because graphsage uses concat
                                        nodevec_dim=2*FLAGS.dim_1,
@@ -454,7 +451,9 @@ def main(argv=None):
                                       id_map,
                                       batch_size=FLAGS.batch_size,
                                       max_degree=FLAGS.max_degree,
-                                      num_neg_samples=FLAGS.neg_sample_size,
+                                      neg_sample_size=FLAGS.neg_sample_size,
+                                      fea_dim=FLAGS.feats_dim,
+                                      fea_filename=FLAGS.train_prefix + "-feats.npy",
                                       context_pairs=context_pairs)
     for model in models:
         train(train_data, minibatch, model, True)

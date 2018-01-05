@@ -6,7 +6,7 @@ import numpy as np
 np.random.seed(123)
 
 class EdgeMinibatchIterator(object):
-    
+
     """ This minibatch iterator iterates over batches of sampled edges or
     random pairs of co-occuring edges.
 
@@ -19,7 +19,7 @@ class EdgeMinibatchIterator(object):
     n2v_retrain -- signals that the iterator is being used to add new embeddings to a n2v model
     fixed_n2v -- signals that the iterator is being used to retrain n2v with only existing nodes as context
     """
-    def __init__(self, G, id2idx, context_pairs=None, batch_size=100, max_degree=25,
+    def __init__(self, G, id2idx, context_pairs=None, batch_size=100, max_degree=25, neg_sample_size=20, fea_dim=602, fea_filename=None,
             n2v_retrain=False, fixed_n2v=False, layer_infos=None,
             **kwargs):
 
@@ -27,6 +27,7 @@ class EdgeMinibatchIterator(object):
         self.nodes = G.nodes()
         self.id2idx = id2idx
         self.batch_size = batch_size
+        self.neg_sample_size = neg_sample_size
         self.max_degree = max_degree
         self.batch_num = 0
         self.layer_infos = layer_infos
@@ -49,7 +50,16 @@ class EdgeMinibatchIterator(object):
 
         print(len([n for n in G.nodes() if not G.node[n]['test'] and not G.node[n]['val']]), 'train nodes')
         print(len([n for n in G.nodes() if G.node[n]['test'] or G.node[n]['val']]), 'test nodes')
-        self.sample1 = np.load("")
+
+        self.all_samples1 = np.load("all_samples1.npy")
+        self.all_support_size1 = np.load("all_support_size1.npy")
+        self.all_samples2 = np.load("all_samples2.npy")
+        self.all_support_size2 = np.load("all_support_size2.npy")
+        self.all_neg_samples = np.load("all_neg_samples.npy")
+        self.all_neg_support_size = np.load("all_neg_support_size.npy")
+        self.fea_dim = fea_dim
+        self.fea_filename = fea_filename
+        self.total_batch_size = len(self.all_samples1)
         self.val_set_size = len(self.val_edges)
 
     def set_place_holder(self, placeholders):
@@ -82,7 +92,7 @@ class EdgeMinibatchIterator(object):
         for nodeid in self.G.nodes():
             if self.G.node[nodeid]['test'] or self.G.node[nodeid]['val']:
                 continue
-            neighbors = np.array([self.id2idx[neighbor] 
+            neighbors = np.array([self.id2idx[neighbor]
                 for neighbor in self.G.neighbors(nodeid)
                 if (not self.G[nodeid][neighbor]['train_removed'])])
             deg[self.id2idx[nodeid]] = len(neighbors)
@@ -98,7 +108,7 @@ class EdgeMinibatchIterator(object):
     def construct_test_adj(self):
         adj = len(self.id2idx)*np.ones((len(self.id2idx)+1, self.max_degree))
         for nodeid in self.G.nodes():
-            neighbors = np.array([self.id2idx[neighbor] 
+            neighbors = np.array([self.id2idx[neighbor]
                 for neighbor in self.G.neighbors(nodeid)])
             if len(neighbors) == 0:
                 continue
@@ -112,38 +122,75 @@ class EdgeMinibatchIterator(object):
     def end(self):
         return self.batch_num * self.batch_size >= len(self.train_edges)
 
-    def batch_feed_dict(self, batch_edges):
-        batch1 = []
-        batch2 = []
-        for node1, node2 in batch_edges:
-            batch1.append(self.id2idx[node1])
-            batch2.append(self.id2idx[node2])
-        batch_size = len(batch_edges)
-        # begin to sample neighbors
-        sample1_tmp, support_size1 = self.sample(batch1, batch_size)
-        sample1 = []
-        for sample1_ele in sample1_tmp:
-            sample1.append(sample1_ele)
-        sample2_tmp, support_size2 = self.sample(batch2, batch_size)
-        sample2 = []
-        for sample2_ele in sample2_tmp:
-            sample2.append(sample2_ele)
-        # begin to sample negative samples
+    def load_feats(self, node_id):
+        feas = []
+        node_number = len(node_id)
+        pre = node_id[0]
+        end = node_id[0]
+        for i in range(1, node_number):
+            end = node_id[i]
+            if node_id[i] != (end - 1):
+                # begin to read pre fea to file
+                feas.append(np.memmap(self.fea_filename, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim)))
+                pre = end
+        if pre < end:
+            feas.append(np.memmap(self.fea_filename, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
+                                  shape=(end - pre, self.fea_dim)))
+        return np.vstack(feas)
+
+    def batch_feed_dict(self):
+        batch_id = self.batch_num % self.total_batch_size
+        samples1_flat = self.all_samples1[batch_id]
+        support_size1 = self.all_support_size1[batch_id]
+        samples2_flat = self.all_samples2[batch_id]
+        support_size2 = self.all_support_size2[batch_id]
+        neg_samples_flat = self.all_neg_samples[batch_id]
+        neg_support_size = self.all_neg_support_size[batch_id]
+        batch_idx = np.concatenate((samples1_flat, samples2_flat), 0)
+        batch_idx = np.concatenate((batch_idx, neg_samples_flat), 0)
+        batch_idx = np.sort(batch_idx)
+        batch_idx = np.unique(batch_idx).tolist()
+        batch_id_map = {k : v for v, k in enumerate(batch_idx)}
+        batch_feas = self.load_feats(batch_idx)
+        batch_feas = np.vstack([batch_feas, np.zeros((batch_feas.shape[1],))])
+        # begin convert sparese id to dense id
+        samples1_flat = [batch_id_map[x] for x in samples1_flat]
+        samples2_flat = [batch_id_map[x] for x in samples2_flat]
+        neg_samples_flat = [batch_id_map[x] for x in neg_samples_flat]
+        # begin to split samples
+        np.insert(support_size1, 0, 0)
+        support_len = len(support_size1)
+        samples1 = []
+        for i in range(support_len - 1):
+            samples1.append(samples1_flat[support_size1[i] * self.batch_size:support_size1[i + 1] * self.batch_size])
+
+        samples2 = []
+        np.insert(support_size2, 0, 0)
+        for i in range(support_len - 1):
+            samples2.append(samples2_flat[support_size2[i] * self.batch_size:support_size2[i + 1] * self.batch_size])
+
+        neg_samples = []
+        np.insert(neg_support_size, 0, 0)
+        for i in range(support_len - 1):
+            neg_samples.append(neg_samples_flat[neg_support_size[i] * self.neg_sample_size:neg_support_size[i + 1] * self.neg_sample_size])
 
         feed_dict = dict()
-        feed_dict.update({self.placeholders['batch_size'] : batch_size})
-        feed_dict.update({self.placeholders['batch1']: batch1})
-        feed_dict.update({self.placeholders['batch2']: batch2})
-
+        feed_dict.update({self.placeholders['sample1'] : samples1})
+        feed_dict.update({self.placeholders['support_size1']: support_size1})
+        feed_dict.update({self.placeholders['sample2']: samples2})
+        feed_dict.update({self.placeholders['support_size2']: support_size2})
+        feed_dict.update({self.placeholders['neg_samples']: neg_samples})
+        feed_dict.update({self.placeholders['neg_sizes']: neg_support_size})
+        feed_dict.update({self.placeholders['feats']: batch_feas})
         return feed_dict
 
     def next_minibatch_feed_dict(self):
-        start_idx = self.batch_num * self.batch_size
+        #start_idx = self.batch_num * self.batch_size
         self.batch_num += 1
-        end_idx = min(start_idx + self.batch_size, len(self.train_edges))
-        batch_edges = self.train_edges[start_idx : end_idx]
+        #end_idx = min(start_idx + self.batch_size, len(self.train_edges))
+        #batch_edges = self.train_edges[start_idx : end_idx]
 
-        return self.batch_feed_dict(batch_edges)
+        return self.batch_feed_dict()
 
     def num_training_batches(self):
         return len(self.train_edges) // self.batch_size + 1
@@ -159,13 +206,13 @@ class EdgeMinibatchIterator(object):
 
     def incremental_val_feed_dict(self, size, iter_num):
         edge_list = self.val_edges
-        val_edges = edge_list[iter_num*size:min((iter_num+1)*size, 
+        val_edges = edge_list[iter_num*size:min((iter_num+1)*size,
             len(edge_list))]
         return self.batch_feed_dict(val_edges), (iter_num+1)*size >= len(self.val_edges), val_edges
 
     def incremental_embed_feed_dict(self, size, iter_num):
         node_list = self.nodes
-        val_nodes = node_list[iter_num*size:min((iter_num+1)*size, 
+        val_nodes = node_list[iter_num*size:min((iter_num+1)*size,
             len(node_list))]
         val_edges = [(n,n) for n in val_nodes]
         return self.batch_feed_dict(val_edges), (iter_num+1)*size >= len(node_list), val_edges
@@ -174,7 +221,7 @@ class EdgeMinibatchIterator(object):
         train_edges = []
         val_edges = []
         for n1, n2 in self.G.edges():
-            if (self.G.node[n1]['val'] or self.G.node[n1]['test'] 
+            if (self.G.node[n1]['val'] or self.G.node[n1]['test']
                     or self.G.node[n2]['val'] or self.G.node[n2]['test']):
                 val_edges.append((n1,n2))
             else:
@@ -190,7 +237,7 @@ class EdgeMinibatchIterator(object):
         self.batch_num = 0
 
 class NodeMinibatchIterator(object):
-    
+
     """ 
     This minibatch iterator iterates over nodes for supervised learning.
 
@@ -202,8 +249,8 @@ class NodeMinibatchIterator(object):
     batch_size -- size of the minibatches
     max_degree -- maximum size of the downsampled adjacency lists
     """
-    def __init__(self, G, id2idx, 
-            placeholders, label_map, num_classes, 
+    def __init__(self, G, id2idx,
+            placeholders, label_map, num_classes,
             batch_size=100, max_degree=25,
             **kwargs):
 
@@ -245,7 +292,7 @@ class NodeMinibatchIterator(object):
         for nodeid in self.G.nodes():
             if self.G.node[nodeid]['test'] or self.G.node[nodeid]['val']:
                 continue
-            neighbors = np.array([self.id2idx[neighbor] 
+            neighbors = np.array([self.id2idx[neighbor]
                 for neighbor in self.G.neighbors(nodeid)
                 if (not self.G[nodeid][neighbor]['train_removed'])])
             deg[self.id2idx[nodeid]] = len(neighbors)
@@ -261,7 +308,7 @@ class NodeMinibatchIterator(object):
     def construct_test_adj(self):
         adj = len(self.id2idx)*np.ones((len(self.id2idx)+1, self.max_degree))
         for nodeid in self.G.nodes():
-            neighbors = np.array([self.id2idx[neighbor] 
+            neighbors = np.array([self.id2idx[neighbor]
                 for neighbor in self.G.neighbors(nodeid)])
             if len(neighbors) == 0:
                 continue
@@ -278,7 +325,7 @@ class NodeMinibatchIterator(object):
     def batch_feed_dict(self, batch_nodes, val=False):
         batch1id = batch_nodes
         batch1 = [self.id2idx[n] for n in batch1id]
-              
+
         labels = np.vstack([self._make_label_vec(node) for node in batch1id])
         feed_dict = dict()
         feed_dict.update({self.placeholders['batch_size'] : len(batch1)})
@@ -303,7 +350,7 @@ class NodeMinibatchIterator(object):
             val_nodes = self.test_nodes
         else:
             val_nodes = self.val_nodes
-        val_node_subset = val_nodes[iter_num*size:min((iter_num+1)*size, 
+        val_node_subset = val_nodes[iter_num*size:min((iter_num+1)*size,
             len(val_nodes))]
 
         # add a dummy neighbor
@@ -322,7 +369,7 @@ class NodeMinibatchIterator(object):
 
     def incremental_embed_feed_dict(self, size, iter_num):
         node_list = self.nodes
-        val_nodes = node_list[iter_num*size:min((iter_num+1)*size, 
+        val_nodes = node_list[iter_num*size:min((iter_num+1)*size,
             len(node_list))]
         return self.batch_feed_dict(val_nodes), (iter_num+1)*size >= len(node_list), val_nodes
 
