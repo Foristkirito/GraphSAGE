@@ -138,7 +138,7 @@ class EdgeMinibatchIterator(object):
                 # print("mem count : {0}".format(self.mem_count))
                 fp = np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim))
                 feas.append(fp)
-                del fp
+                fp._mmap.close()
                 self.mem_count = self.mem_count + 1
                 pre = end
         if pre < end:
@@ -146,7 +146,7 @@ class EdgeMinibatchIterator(object):
             fp = np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
                                   shape=(end - pre, self.fea_dim))
             feas.append(fp)
-            del fp
+            fp._mmap.close()
             self.mem_count = self.mem_count + 1
         return np.vstack(feas)
 
