@@ -64,6 +64,7 @@ class EdgeMinibatchIterator(object):
         self.val_set_size = len(self.val_edges)
         self.fd = os.open(self.fea_filename, os.O_RDONLY)
         self.fobj = os.fdopen(self.fd, "r")
+        self.mem_count = 0
 
     def set_place_holder(self, placeholders):
         self.placeholders = placeholders
@@ -134,11 +135,15 @@ class EdgeMinibatchIterator(object):
             end = node_id[i]
             if node_id[i] != (end - 1):
                 # begin to read pre fea to file
+                print("mem count : {0}".format(self.mem_count))
                 feas.append(np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim)))
+                self.mem_count = self.mem_count + 1
                 pre = end
         if pre < end:
+            print("mem count : {0}".format(self.mem_count))
             feas.append(np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
                                   shape=(end - pre, self.fea_dim)))
+            self.mem_count = self.mem_count + 1
         return np.vstack(feas)
 
     def batch_feed_dict(self):
