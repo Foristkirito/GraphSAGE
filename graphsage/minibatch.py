@@ -2,6 +2,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import os
 
 np.random.seed(123)
 
@@ -61,6 +62,7 @@ class EdgeMinibatchIterator(object):
         self.fea_filename = fea_filename
         self.total_batch_size = len(self.all_samples1)
         self.val_set_size = len(self.val_edges)
+        self.fobj = os.fdopen(self.fea_filename, "r")
 
     def set_place_holder(self, placeholders):
         self.placeholders = placeholders
@@ -131,10 +133,10 @@ class EdgeMinibatchIterator(object):
             end = node_id[i]
             if node_id[i] != (end - 1):
                 # begin to read pre fea to file
-                feas.append(np.memmap(self.fea_filename, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim)))
+                feas.append(np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim)))
                 pre = end
         if pre < end:
-            feas.append(np.memmap(self.fea_filename, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
+            feas.append(np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
                                   shape=(end - pre, self.fea_dim)))
         return np.vstack(feas)
 
