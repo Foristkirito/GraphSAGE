@@ -62,7 +62,8 @@ class EdgeMinibatchIterator(object):
         self.fea_filename = fea_filename
         self.total_batch_size = len(self.all_samples1)
         self.val_set_size = len(self.val_edges)
-        self.fobj = os.fdopen(os.open(self.fea_filename, os.O_RDONLY), "r")
+        self.fd = os.open(self.fea_filename, os.O_RDONLY)
+        self.fobj = os.fdopen(self.fd, "r")
 
     def set_place_holder(self, placeholders):
         self.placeholders = placeholders
