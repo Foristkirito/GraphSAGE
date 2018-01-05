@@ -232,8 +232,9 @@ class SampleAndAggregate(GeneralizedModel):
         self.neg_support_size = placeholders['neg_sizes']
         self.model_size = model_size
         self.adj_info = adj
-        features = placeholders["feats"]
-        if identity_dim > 0:
+        self.features = placeholders["feats"]
+        '''
+                if identity_dim > 0:
            self.embeds = tf.get_variable("node_embeddings", [adj.get_shape().as_list()[0], identity_dim])
         else:
            self.embeds = None
@@ -245,10 +246,12 @@ class SampleAndAggregate(GeneralizedModel):
             self.features = tf.Variable(tf.constant(features, dtype=tf.float32), trainable=False)
             if not self.embeds is None:
                 self.features = tf.concat([self.embeds, self.features], axis=1)
+        '''
+
         self.degrees = degrees
         self.concat = concat
 
-        self.dims = [(0 if features is None else features.shape[1]) + identity_dim]
+        self.dims = [(0 if self.features is None else self.features.shape[1]) + identity_dim]
         self.dims.extend([layer_infos[i].output_dim for i in range(len(layer_infos))])
         self.batch_size = placeholders["batch_size"]
         self.placeholders = placeholders
