@@ -158,7 +158,7 @@ class GeneralizedModel(Model):
 
     def __init__(self, **kwargs):
         super(GeneralizedModel, self).__init__(**kwargs)
-        
+
 
     def build(self):
         """ Wrapper for _build() """
@@ -175,7 +175,7 @@ class GeneralizedModel(Model):
 
         self.opt_op = self.optimizer.minimize(self.loss)
 
-# SAGEInfo is a namedtuple that specifies the parameters 
+# SAGEInfo is a namedtuple that specifies the parameters
 # of the recursive GraphSAGE layers
 SAGEInfo = namedtuple("SAGEInfo",
     ['layer_name', # name of the layer (to get feature embedding etc.)
@@ -190,17 +190,17 @@ class SampleAndAggregate(GeneralizedModel):
     """
 
     def __init__(self, placeholders, features, adj, degrees,
-            layer_infos, concat=True, aggregator_type="mean", 
+            layer_infos, concat=True, aggregator_type="mean",
             model_size="small", identity_dim=0,
             **kwargs):
         '''
         Args:
             - placeholders: Stanford TensorFlow placeholder object.
-            - features: Numpy array with node features. 
+            - features: Numpy array with node features.
                         NOTE: Pass a None object to train in featureless mode (identity features for nodes)!
             - adj: Numpy array with adjacency lists (padded with random re-samples)
-            - degrees: Numpy array with node degrees. 
-            - layer_infos: List of SAGEInfo namedtuples that describe the parameters of all 
+            - degrees: Numpy array with node degrees.
+            - layer_infos: List of SAGEInfo namedtuples that describe the parameters of all
                    the recursive layers. See SAGEInfo definition above.
             - concat: whether to concatenate during recursive iterations
             - aggregator_type: how to aggregate neighbor information
@@ -230,7 +230,7 @@ class SampleAndAggregate(GeneralizedModel):
            self.embeds = tf.get_variable("node_embeddings", [adj.get_shape().as_list()[0], identity_dim])
         else:
            self.embeds = None
-        if features is None: 
+        if features is None:
             if identity_dim == 0:
                 raise Exception("Must have a positive value for identity feature dimension if no input features given.")
             self.features = self.embeds
@@ -258,7 +258,7 @@ class SampleAndAggregate(GeneralizedModel):
             inputs: batch inputs
             batch_size: the number of inputs (different for batch inputs and negative samples).
         """
-        
+
         if batch_size is None:
             batch_size = self.batch_size
         samples = [inputs]
@@ -277,7 +277,7 @@ class SampleAndAggregate(GeneralizedModel):
 
     def aggregate(self, samples, input_features, dims, num_samples, support_sizes, batch_size=None,
             aggregators=None, name=None, concat=False, model_size="small"):
-        """ At each layer, aggregate hidden representations of neighbors to compute the hidden representations 
+        """ At each layer, aggregate hidden representations of neighbors to compute the hidden representations
             at next layer.
         Args:
             samples: a list of samples of variable hops away for convolving at each layer of the
@@ -306,11 +306,11 @@ class SampleAndAggregate(GeneralizedModel):
                 # aggregator at current layer
                 if layer == len(num_samples) - 1:
                     aggregator = self.aggregator_cls(dim_mult*dims[layer], dims[layer+1], act=lambda x : x,
-                            dropout=self.placeholders['dropout'], 
+                            dropout=self.placeholders['dropout'],
                             name=name, concat=concat, model_size=model_size)
                 else:
                     aggregator = self.aggregator_cls(dim_mult*dims[layer], dims[layer+1],
-                            dropout=self.placeholders['dropout'], 
+                            dropout=self.placeholders['dropout'],
                             name=name, concat=concat, model_size=model_size)
                 aggregators.append(aggregator)
             else:
@@ -320,8 +320,8 @@ class SampleAndAggregate(GeneralizedModel):
             # as layer increases, the number of support nodes needed decreases
             for hop in range(len(num_samples) - layer):
                 dim_mult = 2 if concat and (layer != 0) else 1
-                neigh_dims = [batch_size * support_sizes[hop], 
-                              num_samples[len(num_samples) - hop - 1], 
+                neigh_dims = [batch_size * support_sizes[hop],
+                              num_samples[len(num_samples) - hop - 1],
                               dim_mult*dims[layer]]
                 h = aggregator((hidden[hop],
                                 tf.reshape(hidden[hop + 1], neigh_dims)))
@@ -342,7 +342,7 @@ class SampleAndAggregate(GeneralizedModel):
             distortion=0.75,
             unigrams=self.degrees.tolist()))
 
-           
+
         # perform "convolution"
         samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
         samples2, support_sizes2 = self.sample(self.inputs2, self.layer_infos)
@@ -361,18 +361,28 @@ class SampleAndAggregate(GeneralizedModel):
 
         dim_mult = 2 if self.concat else 1
         self.link_pred_layer = BipartiteEdgePredLayer(dim_mult*self.dims[-1],
-                dim_mult*self.dims[-1], self.placeholders, act=tf.nn.sigmoid, 
+                dim_mult*self.dims[-1], self.placeholders, act=tf.nn.sigmoid,
                 bilinear_weights=False,
                 name='edge_predict')
 
         self.outputs1 = tf.nn.l2_normalize(self.outputs1, 1)
         self.outputs2 = tf.nn.l2_normalize(self.outputs2, 1)
         self.neg_outputs = tf.nn.l2_normalize(self.neg_outputs, 1)
-        self.samples1 = tf.convert_to_tensor(samples1, dtype=tf.int32)
+        # samples1 = [item for sublist in samples1 for item in samples1]
+        #self.samples1 = tf.convert_to_tensor(samples1, dtype=tf.int32)
+        samples1 = [tf.to_int32(x, name='ToInt32') for x in samples1]
+        self.samples1 = tf.concat(samples1, 0)
         self.support_sizes1 = tf.convert_to_tensor(support_sizes1, dtype=tf.int32)
-        self.samples2 = tf.convert_to_tensor(samples2, dtype=tf.int32)
+        # samples2 = [item for sublist in samples2 for item in sublist]
+        # self.samples2 = tf.convert_to_tensor(samples2, dtype=tf.int32)
+        samples2 = [tf.to_int32(x, name='ToInt32') for x in samples2]
+        self.samples2 = tf.concat(samples2, 0)
         self.support_sizes2 = tf.convert_to_tensor(support_sizes2, dtype=tf.int32)
-        self.neg_samples_out = tf.convert_to_tensor(neg_samples_out, dtype=tf.int32)
+        # self.neg_samples_out = tf.convert_to_tensor(neg_samples_out, dtype=tf.int32)
+        # neg_samples_out = [item for sublist in neg_samples_out for item in sublist]
+        neg_samples_out = [tf.to_int32(x, name='ToInt32') for x in neg_samples_out]
+        # self.neg_samples_out = tf.stack(neg_samples_out)
+        self.neg_samples_out = tf.concat(neg_samples_out, 0)
         self.neg_support_sizes = tf.convert_to_tensor(neg_support_sizes, dtype=tf.int32)
 
     def build(self):
@@ -383,7 +393,7 @@ class SampleAndAggregate(GeneralizedModel):
         self._accuracy()
         self.loss = self.loss / tf.cast(self.batch_size, tf.float32)
         grads_and_vars = self.optimizer.compute_gradients(self.loss)
-        clipped_grads_and_vars = [(tf.clip_by_value(grad, -5.0, 5.0) if grad is not None else None, var) 
+        clipped_grads_and_vars = [(tf.clip_by_value(grad, -5.0, 5.0) if grad is not None else None, var)
                 for grad, var in grads_and_vars]
         self.grad, _ = clipped_grads_and_vars[0]
         self.opt_op = self.optimizer.apply_gradients(clipped_grads_and_vars)
@@ -393,7 +403,7 @@ class SampleAndAggregate(GeneralizedModel):
             for var in aggregator.vars.values():
                 self.loss += FLAGS.weight_decay * tf.nn.l2_loss(var)
 
-        self.loss += self.link_pred_layer.loss(self.outputs1, self.outputs2, self.neg_outputs) 
+        self.loss += self.link_pred_layer.loss(self.outputs1, self.outputs2, self.neg_outputs)
         tf.summary.scalar('loss', self.loss)
 
     def _accuracy(self):
@@ -491,7 +501,7 @@ class Node2VecModel(GeneralizedModel):
         loss = tf.reduce_sum(true_xent) + tf.reduce_sum(negative_xent)
         self.loss = loss / tf.cast(self.batch_size, tf.float32)
         tf.summary.scalar('loss', self.loss)
-        
+
     def _accuracy(self):
         # shape: [batch_size]
         aff = self.link_pred_layer.affinity(self.outputs1, self.outputs2)
