@@ -230,11 +230,11 @@ class EdgeMinibatchIterator(object):
     def val_feed_dict(self, size=None):
         edge_list = self.val_edges
         if size is None:
-            return self.batch_feed_dict(edge_list)
+            return self.batch_feed_dict()
         else:
             ind = np.random.permutation(len(edge_list))
             val_edges = [edge_list[i] for i in ind[:min(size, len(ind))]]
-            return self.batch_feed_dict(val_edges)
+            return self.batch_feed_dict()
 
     def incremental_val_feed_dict(self, size, iter_num):
         edge_list = self.val_edges
