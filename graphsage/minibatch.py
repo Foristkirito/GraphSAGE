@@ -175,27 +175,26 @@ class EdgeMinibatchIterator(object):
         samples2_flat = [batch_id_map[x] for x in samples2_flat]
         neg_samples_flat = [batch_id_map[x] for x in neg_samples_flat]
 
-        np.insert(support_size1, 0, 0)
-        support_len = len(support_size1)
+        #np.insert(support_size1, 0, 0)
+        start = 0
+        # support_len = len(support_size1)
         samples1 = []
-        for i in range(support_len - 1):
-            samples1.append(samples1_flat[support_size1[i] * self.batch_size:support_size1[i + 1] * self.batch_size])
-        np.delete(support_size1, 0)
+        for i in support_size1:
+            samples1.append(samples1_flat[start * self.batch_size:i * self.batch_size])
+            start = i
 
-
+        start = 0
         samples2 = []
-        np.insert(support_size2, 0, 0)
-        for i in range(support_len - 1):
-            samples2.append(samples2_flat[support_size2[i] * self.batch_size:support_size2[i + 1] * self.batch_size])
-        np.delete(support_size2, 0)
+        for i in support_size2:
+            samples2.append(samples2_flat[start * self.batch_size:i * self.batch_size])
+            start = i
 
-
+        start = 0
         neg_samples = []
-        np.insert(neg_support_size, 0, 0)
-        for i in range(support_len - 1):
-            neg_samples.append(neg_samples_flat[neg_support_size[i] * self.neg_sample_size:neg_support_size[i + 1] * self.neg_sample_size])
-        np.delete(neg_support_size, 0)
-
+        for i in neg_support_size:
+            neg_samples.append(neg_samples_flat[start * self.neg_sample_size:i * self.neg_sample_size])
+            start = i
+        print(len(support_size2))
         # begin to split samples
 
         feed_dict = dict()
