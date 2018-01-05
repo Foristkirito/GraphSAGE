@@ -153,12 +153,18 @@ def save_val_embeddings(sess, model, minibatch_iter, size, out_dir, mod=""):
 def construct_placeholders():
     # Define placeholders
     placeholders = {
-        'sample1' : tf.placeholder(tf.int32, shape=(None), name='sample1'),
+        'sample1_1' : tf.placeholder(tf.int32, shape=(None), name='sample1_1'),
+        'sample1_2': tf.placeholder(tf.int32, shape=(None), name='sample1_2'),
+        'sample1_0': tf.placeholder(tf.int32, shape=(None), name='sample1_0'),
         'support_size1' : tf.placeholder(tf.int32, shape=(None), name='support_size1'),
-        'sample2' : tf.placeholder(tf.int32, shape=(None), name='sample2'),
+        'sample2_1' : tf.placeholder(tf.int32, shape=(None), name='sample2_1'),
+        'sample2_2': tf.placeholder(tf.int32, shape=(None), name='sample2_2'),
+        'sample2_0': tf.placeholder(tf.int32, shape=(None), name='sample2_0'),
         'support_size2' : tf.placeholder(tf.int32, shape=(None), name='support_size2'),
         # negative samples for all nodes in the batch
-        'neg_samples' : tf.placeholder(tf.int32, shape=(None), name='neg_samples'),
+        'neg_samples_1' : tf.placeholder(tf.int32, shape=(None), name='neg_samples_1'),
+        'neg_samples_2': tf.placeholder(tf.int32, shape=(None), name='neg_samples_2'),
+        'neg_samples_0': tf.placeholder(tf.int32, shape=(None), name='neg_samples_0'),
         'neg_sizes' : tf.placeholder(tf.int32, shape=(None), name='neg_sizes'),
         # features
         'feats' : tf.placeholder(tf.float64, shape=(None), name='features'),

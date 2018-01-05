@@ -182,11 +182,17 @@ class EdgeMinibatchIterator(object):
         # begin to split samples
 
         feed_dict = dict()
-        feed_dict.update({self.placeholders['sample1'] : samples1_flat})
+        feed_dict.update({self.placeholders['sample1_0'] : samples1[0]})
+        feed_dict.update({self.placeholders['sample1_1']: samples1[1]})
+        feed_dict.update({self.placeholders['sample1_2']: samples1[2]})
         feed_dict.update({self.placeholders['support_size1']: support_size1})
-        feed_dict.update({self.placeholders['sample2']: samples2_flat})
+        feed_dict.update({self.placeholders['sample2_0']: samples2[0]})
+        feed_dict.update({self.placeholders['sample2_1']: samples2[1]})
+        feed_dict.update({self.placeholders['sample2_2']: samples2[2]})
         feed_dict.update({self.placeholders['support_size2']: support_size2})
-        feed_dict.update({self.placeholders['neg_samples']: neg_samples_flat})
+        feed_dict.update({self.placeholders['neg_samples_0']: neg_samples[0]})
+        feed_dict.update({self.placeholders['neg_samples_1']: neg_samples[1]})
+        feed_dict.update({self.placeholders['neg_samples_2']: neg_samples[2]})
         feed_dict.update({self.placeholders['neg_sizes']: neg_support_size})
         feed_dict.update({self.placeholders['feats']: batch_feas})
         return feed_dict
