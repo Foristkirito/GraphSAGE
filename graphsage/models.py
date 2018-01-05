@@ -255,8 +255,8 @@ class SampleAndAggregate(GeneralizedModel):
 
         self.degrees = degrees
         self.concat = concat
-        _, columns = map(lambda i: i.value, self.features.get_shape())
-        self.dims = [(0 if self.features is None else columns) + identity_dim]
+        # _, columns = map(lambda i: i.value, self.features.get_shape())
+        self.dims = [(0 if self.features is None else 602) + identity_dim]
         self.dims.extend([layer_infos[i].output_dim for i in range(len(layer_infos))])
         self.batch_size = placeholders["batch_size"]
         self.placeholders = placeholders
