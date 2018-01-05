@@ -13,7 +13,7 @@ class MeanAggregator(Layer):
             name=None, concat=False, **kwargs):
         super(MeanAggregator, self).__init__(**kwargs)
 
-        self.dropout = dropout
+        self.dropout = tf.cast(dropout, tf.float64)
         self.bias = bias
         self.act = act
         self.concat = concat
