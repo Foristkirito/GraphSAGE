@@ -181,12 +181,14 @@ class EdgeMinibatchIterator(object):
         samples1 = []
         for i in support_size1:
             samples1.append(samples1_flat[start * self.batch_size:i * self.batch_size])
+            print("len(samples1) : {0}".format(i))
             start = i
 
         start = 0
         samples2 = []
         for i in support_size2:
             samples2.append(samples2_flat[start * self.batch_size:i * self.batch_size])
+            print("len(samples2) : {0}".format(i))
             start = i
 
         start = 0
