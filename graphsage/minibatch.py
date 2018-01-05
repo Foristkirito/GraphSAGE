@@ -181,14 +181,12 @@ class EdgeMinibatchIterator(object):
         samples1 = []
         for i in support_size1:
             samples1.append(samples1_flat[start * self.batch_size:(i + start) * self.batch_size])
-            # print("len(samples1) : {0}".format(i))
             start = i
 
         start = 0
         samples2 = []
         for i in support_size2:
             samples2.append(samples2_flat[start * self.batch_size:(i + start) * self.batch_size])
-            print("len(samples2) : {0}".format(i))
             start = i
 
         start = 0
@@ -196,7 +194,6 @@ class EdgeMinibatchIterator(object):
         for i in neg_support_size:
             neg_samples.append(neg_samples_flat[start * self.neg_sample_size:(i + start) * self.neg_sample_size])
             start = i
-        print(len(support_size2))
         # begin to split samples
 
         feed_dict = dict()
