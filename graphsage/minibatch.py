@@ -135,14 +135,18 @@ class EdgeMinibatchIterator(object):
             end = node_id[i]
             if node_id[i] != (end - 1):
                 # begin to read pre fea to file
-                print("mem count : {0}".format(self.mem_count))
-                feas.append(np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim)))
+                # print("mem count : {0}".format(self.mem_count))
+                fp = np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8, shape=(end - pre, self.fea_dim))
+                feas.append(fp)
+                del fp
                 self.mem_count = self.mem_count + 1
                 pre = end
         if pre < end:
-            print("mem count : {0}".format(self.mem_count))
-            feas.append(np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
-                                  shape=(end - pre, self.fea_dim)))
+            # print("mem count : {0}".format(self.mem_count))
+            fp = np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
+                                  shape=(end - pre, self.fea_dim))
+            feas.append(fp)
+            del fp
             self.mem_count = self.mem_count + 1
         return np.vstack(feas)
 
