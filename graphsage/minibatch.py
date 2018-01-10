@@ -170,8 +170,7 @@ class EdgeMinibatchIterator(object):
         batch_id_map = {k : v for v, k in enumerate(batch_idx)}
         batch_feas = self.load_feats(batch_idx)
         batch_feas = np.vstack([batch_feas, np.zeros((batch_feas.shape[1],))])
-        y = batch_feas.view('float32')
-        y[:] = batch_feas
+        batch_feas = batch_feas.astype(np.float32)
         # begin convert sparese id to dense id
         samples1_flat = [batch_id_map[x] for x in samples1_flat]
         samples2_flat = [batch_id_map[x] for x in samples2_flat]
