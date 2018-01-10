@@ -287,7 +287,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
     # Init variables
     sess.run(tf.global_variables_initializer())
 
-    tf.train.write_graph(sess.graph_def, './', 'graphsage_{0}.pb'.format(model_name), as_text=False)
+    tf.train.write_graph(sess.graph_def, './export_models', 'graphsage_{0}.pb'.format(model_name), as_text=False)
 
 
 
