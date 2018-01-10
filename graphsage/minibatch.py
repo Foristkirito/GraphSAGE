@@ -64,7 +64,7 @@ class EdgeMinibatchIterator(object):
         self.val_set_size = len(self.val_edges)
         self.fd = os.open(self.fea_filename, os.O_RDONLY)
         self.fobj = os.fdopen(self.fd, "r")
-        self.f_map = np.memmap(self.fobj, dtype='float64', mode='r', shape=(data_num, self.fea_dim))
+        self.f_map = np.memmap(self.fobj, dtype='float32', mode='r', shape=(data_num, self.fea_dim))
         self.mem_count = 0
 
     def set_place_holder(self, placeholders):
@@ -146,7 +146,7 @@ class EdgeMinibatchIterator(object):
                 pre = end
         if pre < end:
             # print("mem count : {0}".format(self.mem_count))
-            fp = np.memmap(self.fobj, dtype='float64', mode='r', offset=pre * self.fea_dim * 8,
+            fp = np.memmap(self.fobj, dtype='float32', mode='r', offset=pre * self.fea_dim * 8,
                                   shape=(end - pre, self.fea_dim))
             feas.append(fp)
             fp._mmap.close()
@@ -170,6 +170,8 @@ class EdgeMinibatchIterator(object):
         batch_id_map = {k : v for v, k in enumerate(batch_idx)}
         batch_feas = self.load_feats(batch_idx)
         batch_feas = np.vstack([batch_feas, np.zeros((batch_feas.shape[1],))])
+        y = batch_feas.view('float32')
+        y[:] = batch_feas
         # begin convert sparese id to dense id
         samples1_flat = [batch_id_map[x] for x in samples1_flat]
         samples2_flat = [batch_id_map[x] for x in samples2_flat]

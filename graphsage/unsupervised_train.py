@@ -166,7 +166,7 @@ def construct_placeholders():
         'neg_samples_0': tf.placeholder(tf.int32, shape=(None), name='neg_samples_0'),
         'neg_sizes' : tf.placeholder(tf.int32, shape=(None), name='neg_sizes'),
         # features
-        'feats' : tf.placeholder(tf.float64, shape=(None), name='features'),
+        'feats' : tf.placeholder(tf.float32, shape=(None), name='features'),
         # other parameters
         'dropout': tf.placeholder_with_default(0., shape=(), name='dropout'),
         'batch_size' : tf.placeholder(tf.int32, name='batch_size'),
