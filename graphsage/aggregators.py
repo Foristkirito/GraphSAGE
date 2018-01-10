@@ -410,7 +410,7 @@ class SeqAggregator(Layer):
         initial_state = self.cell.zero_state(batch_size, tf.float32)
         used = tf.sign(tf.reduce_max(tf.abs(neigh_vecs), axis=2))
         length = tf.reduce_sum(used, axis=1)
-        length = tf.maximum(length, tf.constant(1.))
+        length = tf.maximum(length, tf.constant(1., dtype=tf.float64))
         length = tf.cast(length, tf.int32)
 
         with tf.variable_scope(self.name) as scope:
