@@ -377,7 +377,7 @@ class SampleAndAggregate(GeneralizedModel):
         clipped_grads_and_vars = [(tf.clip_by_value(grad, -5.0, 5.0) if grad is not None else None, var)
                 for grad, var in grads_and_vars]
         self.grad, _ = clipped_grads_and_vars[0]
-        self.opt_op = self.optimizer.apply_gradients(clipped_grads_and_vars)
+        self.opt_op = self.optimizer.apply_gradients(clipped_grads_and_vars, name="train")
 
     def _loss(self):
         for aggregator in self.aggregators:
