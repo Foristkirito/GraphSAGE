@@ -73,7 +73,7 @@ class GCNAggregator(Layer):
             dropout=0., bias=False, act=tf.nn.relu, name=None, concat=False, **kwargs):
         super(GCNAggregator, self).__init__(**kwargs)
 
-        self.dropout = dropout
+        self.dropout = tf.cast(dropout, tf.float64)
         self.bias = bias
         self.act = act
         self.concat = concat
@@ -123,7 +123,7 @@ class MaxPoolingAggregator(Layer):
             dropout=0., bias=False, act=tf.nn.relu, name=None, concat=False, **kwargs):
         super(MaxPoolingAggregator, self).__init__(**kwargs)
 
-        self.dropout = dropout
+        self.dropout = tf.cast(dropout, tf.float64)
         self.bias = bias
         self.act = act
         self.concat = concat
@@ -201,7 +201,7 @@ class MeanPoolingAggregator(Layer):
             dropout=0., bias=False, act=tf.nn.relu, name=None, concat=False, **kwargs):
         super(MeanPoolingAggregator, self).__init__(**kwargs)
 
-        self.dropout = dropout
+        self.dropout = tf.cast(dropout, tf.float64)
         self.bias = bias
         self.act = act
         self.concat = concat
@@ -280,7 +280,7 @@ class TwoMaxLayerPoolingAggregator(Layer):
             dropout=0., bias=False, act=tf.nn.relu, name=None, concat=False, **kwargs):
         super(TwoMaxLayerPoolingAggregator, self).__init__(**kwargs)
 
-        self.dropout = dropout
+        self.dropout = tf.cast(dropout, tf.float64)
         self.bias = bias
         self.act = act
         self.concat = concat
@@ -367,7 +367,7 @@ class SeqAggregator(Layer):
             dropout=0., bias=False, act=tf.nn.relu, name=None,  concat=False, **kwargs):
         super(SeqAggregator, self).__init__(**kwargs)
 
-        self.dropout = dropout
+        self.dropout = tf.cast(dropout, tf.float64)
         self.bias = bias
         self.act = act
         self.concat = concat
