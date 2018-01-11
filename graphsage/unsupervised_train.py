@@ -186,18 +186,17 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
     context_pairs = train_data[2] if FLAGS.random_context else None
     placeholders = construct_placeholders()
-    minibatch.set_place_holder(placeholders)
-    adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
-    adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
+    # minibatch.set_place_holder(placeholders)
+    # adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
+    # adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
     if model_name == 'graphsage_mean':
         # Create model
-        sampler = UniformNeighborSampler(adj_info)
-        layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
-                            SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
+        # sampler = UniformNeighborSampler(adj_info)
+        layer_infos = [SAGEInfo("node", FLAGS.samples_1, FLAGS.dim_1),
+                            SAGEInfo("node", FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                     adj_info,
                                      minibatch.deg,
                                      layer_infos=layer_infos,
                                      model_size=FLAGS.model_size,
@@ -206,12 +205,11 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      logging=True)
     elif model_name == 'gcn':
         # Create model
-        sampler = UniformNeighborSampler(adj_info)
-        layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, 2*FLAGS.dim_1),
-                            SAGEInfo("node", sampler, FLAGS.samples_2, 2*FLAGS.dim_2)]
+        # sampler = UniformNeighborSampler(adj_info)
+        layer_infos = [SAGEInfo("node", FLAGS.samples_1, 2*FLAGS.dim_1),
+                            SAGEInfo("node", FLAGS.samples_2, 2*FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                     adj_info,
                                      minibatch.deg,
                                      layer_infos=layer_infos,
                                      aggregator_type="gcn",
@@ -222,12 +220,11 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      logging=True)
 
     elif model_name == 'graphsage_seq':
-        sampler = UniformNeighborSampler(adj_info)
-        layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
-                            SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
+        # sampler = UniformNeighborSampler(adj_info)
+        layer_infos = [SAGEInfo("node", FLAGS.samples_1, FLAGS.dim_1),
+                            SAGEInfo("node", FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                     adj_info,
                                      minibatch.deg,
                                      layer_infos=layer_infos,
                                      identity_dim = FLAGS.identity_dim,
@@ -237,12 +234,11 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      logging=True)
 
     elif model_name == 'graphsage_maxpool':
-        sampler = UniformNeighborSampler(adj_info)
-        layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
-                            SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
+        # sampler = UniformNeighborSampler(adj_info)
+        layer_infos = [SAGEInfo("node", FLAGS.samples_1, FLAGS.dim_1),
+                            SAGEInfo("node", FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                    adj_info,
                                     minibatch.deg,
                                      layer_infos=layer_infos,
                                      aggregator_type="maxpool",
@@ -251,12 +247,11 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      fea_dim=FLAGS.feats_dim,
                                      logging=True)
     elif model_name == 'graphsage_meanpool':
-        sampler = UniformNeighborSampler(adj_info)
-        layer_infos = [SAGEInfo("node", sampler, FLAGS.samples_1, FLAGS.dim_1),
-                            SAGEInfo("node", sampler, FLAGS.samples_2, FLAGS.dim_2)]
+        # sampler = UniformNeighborSampler(adj_info)
+        layer_infos = [SAGEInfo("node", FLAGS.samples_1, FLAGS.dim_1),
+                            SAGEInfo("node", FLAGS.samples_2, FLAGS.dim_2)]
 
         model = SampleAndAggregate(placeholders,
-                                    adj_info,
                                     minibatch.deg,
                                      layer_infos=layer_infos,
                                      aggregator_type="meanpool",
@@ -264,13 +259,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
                                      identity_dim = FLAGS.identity_dim,
                                      fea_dim=FLAGS.feats_dim,
                                      logging=True)
-
-    elif model_name == 'n2v':
-        model = Node2VecModel(placeholders, 602,
-                                       minibatch.deg,
-                                       #2x because graphsage uses concat
-                                       nodevec_dim=2*FLAGS.dim_1,
-                                       lr=FLAGS.learning_rate)
     else:
         raise Exception('Error: model name unrecognized.')
 
@@ -285,26 +273,14 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
     summary_writer = tf.summary.FileWriter(log_dir(), sess.graph)
 
     # Init variables
-    sess.run(tf.global_variables_initializer(), feed_dict={adj_info_ph: minibatch.adj})
+    sess.run(tf.global_variables_initializer())
+    tf.train.write_graph(sess.graph_def, './export_models', 'graphsage_{0}.pb'.format(model_name),
+                         as_text=False)
 
-
-    # profile init
-    options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-    run_metadata = tf.RunMetadata()
-    many_runs_timeline = TimeLiner()
-
-    # Train model
-
-    train_shadow_mrr = None
-    shadow_mrr = None
-
-    total_steps = 0
-    avg_time = 0.0
-    epoch_val_costs = []
-
-    train_adj_info = tf.assign(adj_info, minibatch.adj)
-    val_adj_info = tf.assign(adj_info, minibatch.test_adj)
-    for epoch in range(FLAGS.epochs):
+    # train_adj_info = tf.assign(adj_info, minibatch.adj)
+    # val_adj_info = tf.assign(adj_info, minibatch.test_adj)
+    '''
+        for epoch in range(FLAGS.epochs):
         minibatch.shuffle()
 
         iter = 0
@@ -342,9 +318,9 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
             if iter % FLAGS.validate_iter == 0:
                 # Validation
-                sess.run(val_adj_info.op)
+                # sess.run(val_adj_info.op)
                 val_cost, ranks, val_mrr, duration = evaluate(sess, model, minibatch, size=FLAGS.validate_batch_size)
-                sess.run(train_adj_info.op)
+                # sess.run(train_adj_info.op)
                 epoch_val_costs[-1] += val_cost
             if shadow_mrr is None:
                 shadow_mrr = val_mrr
@@ -376,19 +352,10 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
         if total_steps > FLAGS.max_total_steps:
             break
+    '''
 
-    if profile:
-        # write profile data into json format
-        file_name = model_name + ".json"
-        many_runs_timeline.save(file_name)
-        file_name = model_name + "_profile_time.txt"
-        with open(file_name, "w") as f:
-            f.write("time= {:.5f}s".format(avg_time))
-    else:
-        file_name = model_name + "_no_profile_time.txt"
-        with open(file_name, "w") as f:
-            f.write("time= {:.5f}s".format(avg_time))
-    print("Optimization Finished!")
+
+    print("Export Model Finished!")
 
 
 

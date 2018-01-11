@@ -179,7 +179,6 @@ class GeneralizedModel(Model):
 # of the recursive GraphSAGE layers
 SAGEInfo = namedtuple("SAGEInfo",
     ['layer_name', # name of the layer (to get feature embedding etc.)
-     'neigh_sampler', # callable neigh_sampler constructor
      'num_samples',
      'output_dim' # the output (i.e., hidden) dimension
     ])
@@ -189,7 +188,7 @@ class SampleAndAggregate(GeneralizedModel):
     Base implementation of unsupervised GraphSAGE
     """
 
-    def __init__(self, placeholders, adj, degrees,
+    def __init__(self, placeholders, degrees,
             layer_infos, concat=True, aggregator_type="mean", fea_dim=0,
             model_size="small", identity_dim=0,
             **kwargs):
@@ -238,22 +237,7 @@ class SampleAndAggregate(GeneralizedModel):
         self.neg_support_size = placeholders['neg_sizes']
 
         self.model_size = model_size
-        self.adj_info = adj
         self.features = placeholders["feats"]
-        '''
-                if identity_dim > 0:
-           self.embeds = tf.get_variable("node_embeddings", [adj.get_shape().as_list()[0], identity_dim])
-        else:
-           self.embeds = None
-        if features is None:
-            if identity_dim == 0:
-                raise Exception("Must have a positive value for identity feature dimension if no input features given.")
-            self.features = self.embeds
-        else:
-            self.features = tf.Variable(tf.constant(features, dtype=tf.float32), trainable=False)
-            if not self.embeds is None:
-                self.features = tf.concat([self.embeds, self.features], axis=1)
-        '''
 
         self.degrees = degrees
         self.concat = concat
@@ -339,24 +323,22 @@ class SampleAndAggregate(GeneralizedModel):
         '''
 
 
-
         # perform "convolution"
-        #samples1, support_sizes1 = self.sample(self.inputs1, self.layer_infos)
-        #samples2, support_sizes2 = self.sample(self.inputs2, self.layer_infos)
         num_samples = [layer_info.num_samples for layer_info in self.layer_infos]
+
         self.outputs1, self.aggregators = self.aggregate(self.sample1, [self.features], self.dims, num_samples,
                 self.support_size1, concat=self.concat, model_size=self.model_size)
+
         self.outputs2, _ = self.aggregate(self.sample2, [self.features], self.dims, num_samples,
                 self.support_size2, aggregators=self.aggregators, concat=self.concat,
                 model_size=self.model_size)
 
-        #neg_samples, neg_support_sizes = self.sample(self.neg_samples, self.layer_infos,
-         #   FLAGS.neg_sample_size)
         self.neg_outputs, _ = self.aggregate(self.neg_samples, [self.features], self.dims, num_samples,
                 self.neg_support_size, batch_size=FLAGS.neg_sample_size, aggregators=self.aggregators,
                 concat=self.concat, model_size=self.model_size)
 
         dim_mult = 2 if self.concat else 1
+        
         self.link_pred_layer = BipartiteEdgePredLayer(dim_mult*self.dims[-1],
                 dim_mult*self.dims[-1], self.placeholders, act=tf.nn.sigmoid,
                 bilinear_weights=False,
