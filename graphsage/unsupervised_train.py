@@ -274,7 +274,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
     # Init variables
     sess.run(tf.global_variables_initializer())
-    
+
 
     # train_adj_info = tf.assign(adj_info, minibatch.adj)
     # val_adj_info = tf.assign(adj_info, minibatch.test_adj)
@@ -288,67 +288,11 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
             # Construct feed dictionary
             feed_dict = minibatch.next_minibatch_feed_dict()
             feed_dict.update({placeholders['dropout']: FLAGS.dropout})
-
-            t = time.time()
-            # Training step
-            if profile:
-                outs = sess.run(
-                    [merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1],
-                    feed_dict=feed_dict, options=options, run_metadata=run_metadata)
-                fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-                chrome_trace = fetched_timeline.generate_chrome_trace_format()
-                if total_steps >= 50:
-                    many_runs_timeline.update_timeline(chrome_trace)
-            else:
-                outs = sess.run(
+            outs = sess.run(
                     [merged, model.opt_op, model.loss, model.ranks, model.aff_all, model.mrr, model.outputs1],
                     feed_dict=feed_dict)
             tf.train.write_graph(sess.graph_def, './export_models', 'graphsage_{0}.pb'.format(model_name),
                                  as_text=False)
-            break
-            train_cost = outs[2]
-            train_mrr = outs[5]
-
-            if train_shadow_mrr is None:
-                train_shadow_mrr = train_mrr  #
-            else:
-                train_shadow_mrr -= (1 - 0.99) * (train_shadow_mrr - train_mrr)
-
-            if iter % FLAGS.validate_iter == 0:
-                # Validation
-                # sess.run(val_adj_info.op)
-                val_cost, ranks, val_mrr, duration = evaluate(sess, model, minibatch, size=FLAGS.validate_batch_size)
-                # sess.run(train_adj_info.op)
-                epoch_val_costs[-1] += val_cost
-            if shadow_mrr is None:
-                shadow_mrr = val_mrr
-            else:
-                shadow_mrr -= (1 - 0.99) * (shadow_mrr - val_mrr)
-
-            if total_steps % FLAGS.print_every == 0:
-                summary_writer.add_summary(outs[0], total_steps)
-
-            # Print results
-            if total_steps >= 50:
-                avg_time = (avg_time * (total_steps - 50) + time.time() - t) / (total_steps - 50 + 1)
-
-            if total_steps % FLAGS.print_every == 0:
-                print("Iter:", '%04d' % iter,
-                      "train_loss=", "{:.5f}".format(train_cost),
-                      "train_mrr=", "{:.5f}".format(train_mrr),
-                      "train_mrr_ema=", "{:.5f}".format(train_shadow_mrr),  # exponential moving average
-                      "val_loss=", "{:.5f}".format(val_cost),
-                      "val_mrr=", "{:.5f}".format(val_mrr),
-                      "val_mrr_ema=", "{:.5f}".format(shadow_mrr),  # exponential moving average
-                      "time=", "{:.5f}".format(avg_time))
-
-            iter += 1
-            total_steps += 1
-
-            if total_steps > FLAGS.max_total_steps:
-                break
-
-        if total_steps > FLAGS.max_total_steps:
             break
 
 
