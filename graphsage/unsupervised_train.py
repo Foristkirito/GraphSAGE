@@ -283,7 +283,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
         iter = 0
         print('Epoch: %04d' % (epoch + 1))
-        epoch_val_costs.append(0)
         while not minibatch.end():
             # Construct feed dictionary
             feed_dict = minibatch.next_minibatch_feed_dict()
