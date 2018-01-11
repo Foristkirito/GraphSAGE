@@ -274,13 +274,11 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
     # Init variables
     sess.run(tf.global_variables_initializer())
-    tf.train.write_graph(sess.graph_def, './export_models', 'graphsage_{0}.pb'.format(model_name),
-                         as_text=False)
+    
 
     # train_adj_info = tf.assign(adj_info, minibatch.adj)
     # val_adj_info = tf.assign(adj_info, minibatch.test_adj)
-    '''
-        for epoch in range(FLAGS.epochs):
+    for epoch in range(FLAGS.epochs):
         minibatch.shuffle()
 
         iter = 0
@@ -352,7 +350,6 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
         if total_steps > FLAGS.max_total_steps:
             break
-    '''
 
 
     print("Export Model Finished!")
