@@ -186,7 +186,7 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
 
     context_pairs = train_data[2] if FLAGS.random_context else None
     placeholders = construct_placeholders()
-    # minibatch.set_place_holder(placeholders)
+    minibatch.set_place_holder(placeholders)
     # adj_info_ph = tf.placeholder(tf.int32, shape=minibatch.adj.shape)
     # adj_info = tf.Variable(adj_info_ph, trainable=False, name="adj_info")
 
