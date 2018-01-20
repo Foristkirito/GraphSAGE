@@ -170,6 +170,7 @@ def construct_placeholders():
         # other parameters
         'dropout': tf.placeholder_with_default(0., shape=(), name='dropout'),
         'batch_size' : tf.placeholder(tf.int32, name='batch_size'),
+        'neg_num': tf.placeholder(tf.int32, name='neg_num')
     }
     return placeholders
 

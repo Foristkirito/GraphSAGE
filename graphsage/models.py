@@ -238,6 +238,7 @@ class SampleAndAggregate(GeneralizedModel):
 
         self.model_size = model_size
         self.features = placeholders["feats"]
+        self.neg_num = placeholders["neg_num"]
 
         self.degrees = degrees
         self.concat = concat
@@ -334,7 +335,7 @@ class SampleAndAggregate(GeneralizedModel):
                 model_size=self.model_size)
 
         self.neg_outputs, _ = self.aggregate(self.neg_samples, [self.features], self.dims, num_samples,
-                self.neg_support_size, batch_size=FLAGS.neg_sample_size, aggregators=self.aggregators,
+                self.neg_support_size, batch_size=self.neg_num, aggregators=self.aggregators,
                 concat=self.concat, model_size=self.model_size)
 
         dim_mult = 2 if self.concat else 1
@@ -374,7 +375,7 @@ class SampleAndAggregate(GeneralizedModel):
         aff = self.link_pred_layer.affinity(self.outputs1, self.outputs2)
         # shape : [batch_size x num_neg_samples]
         self.neg_aff = self.link_pred_layer.neg_cost(self.outputs1, self.neg_outputs)
-        self.neg_aff = tf.reshape(self.neg_aff, [self.batch_size, FLAGS.neg_sample_size])
+        self.neg_aff = tf.reshape(self.neg_aff, [self.batch_size, self.neg_num])
         _aff = tf.expand_dims(aff, axis=1)
         self.aff_all = tf.concat(axis=1, values=[self.neg_aff, _aff])
         size = tf.shape(self.aff_all)[1]
