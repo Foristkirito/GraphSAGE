@@ -274,7 +274,8 @@ def train(train_data, minibatch, model_name = "graphsage_mean", profile = False,
     summary_writer = tf.summary.FileWriter(log_dir(), sess.graph)
 
     # Init variables
-    sess.run(tf.global_variables_initializer())
+    init = sess.run(tf.global_variables_initializer())
+    print("init opt name : {0}".format(init.name))
 
 
     # train_adj_info = tf.assign(adj_info, minibatch.adj)
