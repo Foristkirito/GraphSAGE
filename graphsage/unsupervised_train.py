@@ -328,6 +328,7 @@ def main(argv=None):
                                       fea_filename=FLAGS.train_prefix + "-feats.npy",
                                       data_num=FLAGS.nodes_number,
                                       context_pairs=context_pairs)
+    print("batch size : {0}, feas dims : {1}".format(FLAGS.batch_size, FLAGS.feats_dim))
     for model in models:
         # train(train_data, minibatch, model, True)
         # tf.reset_default_graph()

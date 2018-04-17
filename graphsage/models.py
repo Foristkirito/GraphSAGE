@@ -299,7 +299,7 @@ class SampleAndAggregate(GeneralizedModel):
             # as layer increases, the number of support nodes needed decreases
             for hop in range(len(num_samples) - layer):
                 dim_mult = 2 if concat and (layer != 0) else 1
-                neigh_dims = [batch_size * support_sizes[hop],
+                neigh_dims = [tf.reshape(batch_size * support_sizes[hop], []),
                               num_samples[len(num_samples) - hop - 1],
                               dim_mult*dims[layer]]
                 h = aggregator((hidden[hop],
@@ -339,7 +339,7 @@ class SampleAndAggregate(GeneralizedModel):
                 concat=self.concat, model_size=self.model_size)
 
         dim_mult = 2 if self.concat else 1
-        
+
         self.link_pred_layer = BipartiteEdgePredLayer(dim_mult*self.dims[-1],
                 dim_mult*self.dims[-1], self.placeholders, act=tf.nn.sigmoid,
                 bilinear_weights=False,
