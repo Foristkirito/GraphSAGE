@@ -299,10 +299,8 @@ class SampleAndAggregate(GeneralizedModel):
             # as layer increases, the number of support nodes needed decreases
             for hop in range(len(num_samples) - layer):
                 dim_mult = 2 if concat and (layer != 0) else 1
-                if tf.equal(batch_size, 0):
-                    tf.Print(batch_size, [batch_size], message="batch size : 0")
-                if tf.equal(support_sizes[hop], 0):
-                    tf.Print(support_sizes[hop], [support_sizes[hop]], message="support_size[{0}] : 0".format(hop))
+                tf.Print(batch_size, [batch_size], message="batch size")
+                tf.Print(support_sizes[hop], [support_sizes[hop]], message="support_size[{0}]".format(hop))
                 neigh_dims = [tf.reshape(batch_size * support_sizes[hop], []),
                               num_samples[len(num_samples) - hop - 1],
                               dim_mult*dims[layer]]
