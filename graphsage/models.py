@@ -306,8 +306,6 @@ class SampleAndAggregate(GeneralizedModel):
                               dim_mult*dims[layer]]
                 neigh_dims = tf.convert_to_tensor(neigh_dims, dtype=tf.int32, name = "tensor_convertor")
                 # neigh_dims = tf.Print(neigh_dims, [neigh_dims])
-                if tf.equal(batch_size, 0) :
-                    tf.Print(batch_size, [batch_size], message="batch size : 0")
                 h = aggregator((hidden[hop],
                                 tf.reshape(hidden[hop + 1], neigh_dims)))
                 next_hidden.append(h)
