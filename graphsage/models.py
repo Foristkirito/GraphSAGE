@@ -297,10 +297,11 @@ class SampleAndAggregate(GeneralizedModel):
             # hidden representation at current layer for all support nodes that are various hops away
             next_hidden = []
             # as layer increases, the number of support nodes needed decreases
+
+            support_sizes = tf.Print(support_sizes, [support_sizes], message="support_size")
             for hop in range(len(num_samples) - layer):
                 dim_mult = 2 if concat and (layer != 0) else 1
                 batch_size = tf.Print(batch_size, [batch_size], message="batch size")
-                support_sizes[hop] = tf.Print(support_sizes[hop], [support_sizes[hop]], message="support_size[{0}]".format(hop))
                 neigh_dims = [tf.reshape(batch_size * support_sizes[hop], []),
                               num_samples[len(num_samples) - hop - 1],
                               dim_mult*dims[layer]]
@@ -379,7 +380,9 @@ class SampleAndAggregate(GeneralizedModel):
         aff = self.link_pred_layer.affinity(self.outputs1, self.outputs2)
         # shape : [batch_size x num_neg_samples]
         self.neg_aff = self.link_pred_layer.neg_cost(self.outputs1, self.neg_outputs)
-        self.neg_aff = tf.reshape(self.neg_aff, [self.batch_size, self.neg_num])
+        shape = [tf.reshape(self.batch_size, []), tf.reshape(self.neg_num, [])]
+        shape = tf.Print(shape, [shape], message="shape = ")
+        self.neg_aff = tf.reshape(self.neg_aff, shape)
         _aff = tf.expand_dims(aff, axis=1)
         self.aff_all = tf.concat(axis=1, values=[self.neg_aff, _aff])
         size = tf.shape(self.aff_all)[1]
